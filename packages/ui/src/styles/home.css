@@ -1,0 +1,110 @@
+.home-main {
+  flex: 1;
+  overflow: auto;
+  padding: 12px 40px 48px;
+}
+.home-main > * {
+  max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.lang-section + .lang-section {
+  margin-top: 40px;
+}
+
+.today {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 0 22px;
+}
+.today-title {
+  margin-top: 6px;
+  font-size: 28px;
+}
+.today-sub {
+  margin-top: 6px;
+  color: hsl(var(--muted-foreground));
+  font-variant-numeric: tabular-nums;
+}
+
+.deck-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+.deck-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: border-color 0.12s, transform 0.12s;
+}
+.deck-card:hover {
+  border-color: hsl(var(--primary) / 0.4);
+}
+.deck-card h3 {
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.deck-card-meta {
+  font-size: 12px;
+  color: hsl(var(--faint-foreground));
+}
+.deck-card-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.deck-progress {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: hsl(var(--muted));
+  overflow: hidden;
+}
+.deck-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: hsl(var(--primary) / 0.7);
+}
+.deck-due {
+  font-size: 12px;
+  font-weight: 500;
+  color: hsl(var(--primary));
+  font-variant-numeric: tabular-nums;
+}
+.deck-due-done {
+  color: hsl(var(--faint-foreground));
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 120px 0;
+  text-align: center;
+}
+.empty h1 {
+  font-size: 22px;
+}
+.empty p {
+  color: hsl(var(--muted-foreground));
+}
+.empty-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}

@@ -1,0 +1,339 @@
+.review-left {
+  font-size: 12px;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  font-variant-numeric: tabular-nums;
+  margin-right: 6px;
+}
+
+.review-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: min(760px, 100%);
+  margin: 0 auto;
+  padding: 8px 24px 28px;
+  min-height: 0;
+}
+
+.review-meta {
+  display: flex;
+  align-items: center;
+  min-height: 28px;
+}
+.review-modes {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pin {
+  height: 24px;
+  padding: 0 9px;
+  border-radius: var(--radius);
+  border: 1px dashed hsl(var(--border));
+  background: transparent;
+  color: hsl(var(--faint-foreground));
+  font: 500 12px var(--font-ui);
+  cursor: pointer;
+}
+.pin-on {
+  border-style: solid;
+  border-color: hsl(var(--primary) / 0.4);
+  color: hsl(var(--primary));
+}
+
+.review-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-height: 0;
+  overflow: auto;
+  padding: 40px 40px 32px;
+  border-radius: calc(var(--radius) + 4px);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  box-shadow: var(--shadow);
+}
+/* While asking, the prompt sits in the middle; once revealed, content flows from the top. */
+.review-card:not(.is-revealed) {
+  justify-content: center;
+}
+.review-card:has(.card-frame) {
+  padding: 0;
+  overflow: hidden;
+}
+.card-frame {
+  flex: 1;
+  width: 100%;
+  border: 0;
+  background: transparent;
+}
+
+.prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+.prompt-term {
+  font: 600 44px/1.2 var(--font-display);
+  letter-spacing: 0.01em;
+}
+.prompt-meaning {
+  font-size: 24px;
+  font-weight: 500;
+}
+.prompt-sentence {
+  font-size: 24px;
+  line-height: 1.7;
+}
+.prompt-fill {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.prompt-hint {
+  color: hsl(var(--muted-foreground));
+}
+.blank {
+  display: inline-block;
+  min-width: 3em;
+  margin: 0 4px;
+  border-bottom: 2px solid hsl(var(--primary));
+}
+
+.speaker {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid hsl(var(--border));
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  font-size: 15px;
+  cursor: pointer;
+}
+.speaker:hover {
+  color: hsl(var(--primary));
+  border-color: hsl(var(--primary) / 0.4);
+}
+.speaker-large {
+  width: 88px;
+  height: 88px;
+  margin: 24px 0;
+  font-size: 34px;
+  color: hsl(var(--primary));
+  background: hsl(var(--accent));
+  border-color: transparent;
+}
+
+/* Choice */
+
+.choices {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  width: min(480px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font: 15px var(--font-ui);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, opacity 0.12s;
+}
+.choice:hover:not(:disabled) {
+  border-color: hsl(var(--primary) / 0.5);
+  background: hsl(var(--accent));
+}
+.choice:disabled {
+  cursor: default;
+}
+.choice.is-answer {
+  border-color: hsl(var(--positive) / 0.6);
+  background: hsl(var(--positive) / 0.1);
+}
+.choice.is-wrong {
+  border-color: hsl(var(--destructive) / 0.6);
+  background: hsl(var(--destructive) / 0.08);
+}
+.choice.is-dim {
+  opacity: 0.45;
+}
+
+/* Spell */
+
+.spell {
+  display: flex;
+  gap: 8px;
+  width: min(420px, 100%);
+  margin: 0 auto;
+}
+.spell input {
+  font-size: 18px;
+  text-align: center;
+}
+.spell-close {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: hsl(var(--muted-foreground));
+}
+.spell-close-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Answer */
+
+.answer-wrap {
+  padding-top: 24px;
+  border-top: 1px solid hsl(var(--border));
+  animation: rise 0.16s ease-out;
+}
+.answer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.answer-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.answer-term {
+  font: 600 22px var(--font-display);
+}
+.answer-reading {
+  color: hsl(var(--muted-foreground));
+  font-size: 15px;
+}
+.answer-meaning {
+  font-size: 17px;
+}
+.answer-sentence {
+  font-size: 18px;
+  line-height: 1.7;
+}
+.answer-notes,
+.answer-confusables {
+  font-size: 13px;
+  color: hsl(var(--muted-foreground));
+}
+.examples {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.examples li {
+  display: flex;
+  flex-direction: column;
+  padding-left: 12px;
+  border-left: 2px solid hsl(var(--primary) / 0.35);
+}
+.example-text {
+  font-size: 15px;
+}
+.example-translation {
+  font-size: 13px;
+  color: hsl(var(--muted-foreground));
+}
+
+/* Actions */
+
+.review-actions {
+  flex: none;
+  display: flex;
+  justify-content: center;
+  min-height: 64px;
+  align-items: center;
+}
+.ratings {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 8px;
+  width: min(560px, 100%);
+}
+.rating {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 9px 0 8px;
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  font-family: var(--font-ui);
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+.rating:hover {
+  background: hsl(var(--muted));
+}
+.rating kbd {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+.rating-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+.rating-interval {
+  font-size: 12px;
+  color: hsl(var(--faint-foreground));
+  font-variant-numeric: tabular-nums;
+}
+.rating-1 .rating-label { color: hsl(var(--destructive)); }
+.rating-3 .rating-label { color: hsl(var(--primary)); }
+.rating-4 .rating-label { color: hsl(var(--positive)); }
+
+.verdict {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 14px;
+}
+.verdict-wrong span {
+  color: hsl(var(--destructive));
+}
+
+.review-done {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding-bottom: 72px;
+  text-align: center;
+}
+.review-done h1 {
+  font-size: 28px;
+}
+.review-done p:not(.eyebrow) {
+  color: hsl(var(--muted-foreground));
+  margin-bottom: 14px;
+}

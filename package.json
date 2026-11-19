@@ -1,0 +1,16 @@
+{
+  "name": "fragmemo",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.16.1",
+  "scripts": {
+    "dev": "pnpm --filter @fragmemo/desktop dev",
+    "build": "pnpm --filter @fragmemo/desktop build",
+    "test": "vitest run",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vitest": "^5.1.1"
+  }
+}

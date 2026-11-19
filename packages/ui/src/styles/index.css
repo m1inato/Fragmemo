@@ -1,0 +1,8 @@
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/outfit';
+@import './base.css';
+@import './app.css';
+@import './welcome.css';
+@import './home.css';
+@import './review.css';
+@import './deck.css';

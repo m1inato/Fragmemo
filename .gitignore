@@ -1,0 +1,14 @@
+node_modules/
+dist/
+out/
+release/
+coverage/
+*.log
+.DS_Store
+.env
+.env.*
+
+# Local agent instructions, not part of the project
+AGENTS.md
+CLAUDE.md
+.claude/
