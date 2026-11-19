@@ -5,6 +5,8 @@ import {
 import type { NoteDraft } from '@fragmemo/ui/api'
 import { app, dialog, shell, type BrowserWindow } from 'electron'
 import { readdir, readFile, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import initSqlJs from 'sql.js'
 import { createNodeStorage, resolveInside } from './storage'
 import { getSettings, saveSettings } from './settings'
 import { createGitSync } from './sync'
@@ -35,7 +37,15 @@ async function open(root: string) {
   current = {
     root,
     sync,
-    lib: createLibrary({ storage: createNodeStorage(root), sync, clock: systemClock, ids: createIds(), deviceId })
+    lib: createLibrary({
+      storage: createNodeStorage(root),
+      sync,
+      clock: systemClock,
+      ids: createIds(),
+      deviceId,
+      // The wasm is emitted next to the main bundle (see electron.vite.config.ts).
+      loadSql: () => initSqlJs({ locateFile: (f) => join(__dirname, f) })
+    })
   }
   await current.lib.listDecks()
   saveSettings({ libraryPath: root })
