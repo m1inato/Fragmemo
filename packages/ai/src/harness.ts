@@ -63,9 +63,11 @@ export async function runAgent(o: {
 
   if (o.provider.kind === 'cli') {
     const res = await o.provider.run({
-      system: o.system, prompt: o.prompt, session: o.session, tools: specs, call, maxSteps, signal: o.signal, onEvent: o.onEvent
+      system: o.system, prompt: o.provider.id === 'codex-cli' && o.history?.length
+        ? JSON.stringify([...o.history, { role: 'user', content: o.prompt }])
+        : o.prompt, session: o.session, tools: specs, call, maxSteps, signal: o.signal, onEvent: o.onEvent
     })
-    return { text: res.text, changes, session: res.session, transcript: [] }
+    return { text: res.text, changes, session: res.session, transcript: [...(o.history ?? []), { role: 'user', content: o.prompt }, { role: 'assistant', content: res.text }] }
   }
 
   const messages: Msg[] = [...(o.history ?? []), { role: 'user', content: o.prompt }]

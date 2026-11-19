@@ -259,3 +259,27 @@
 @keyframes pulse {
   50% { opacity: 0.3; }
 }
+
+.notebook { padding: 12px 20px 32px; overflow: auto; }
+.notebook header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.notebook h2 { font-size: 20px; line-height: 1.35; }
+.notebook header span { white-space: nowrap; font-size: 11px; }
+.note-bar, .notebook form { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 0; }
+.note-bar { border-block: 1px solid hsl(var(--border)); }
+.note-bar > button { appearance: none; background: transparent; border: 0; color: hsl(var(--muted-foreground)); border-radius: 4px; padding: 5px 8px; font-size: 12px; }
+.note-bar > button:hover { background: hsl(var(--accent)); }
+.note-bar > button:last-child { margin-left: auto; }
+.notebook .tiptap { min-height: 240px; padding: 10px 1px; outline: none; line-height: 1.75; overflow-wrap: anywhere; }
+.notebook .tiptap > p:only-child:has(>br:only-child)::before { content: '写下笔记，输入 / 插入内容…'; float: left; height: 0; pointer-events: none; color: hsl(var(--faint-foreground)); }
+.notebook .tiptap img { max-width: 100%; }
+.notebook table { width: 100%; border-collapse: collapse; }
+.notebook td, .notebook th { border: 1px solid hsl(var(--border)); padding: 4px; }
+.notebook blockquote { border-left: 2px solid hsl(var(--primary)); margin: 0; padding-left: 12px; }
+
+.notebook { padding: 0 20px 32px; }
+.note-chrome { position: sticky; top: 0; z-index: 1; padding-top: 12px; background: hsl(var(--background)); }
+.note-chrome h2 { font-weight: 550; font-size: 18px; margin-bottom: 10px; }
+.note-bar { padding: 4px 0; }
+.notebook .tiptap { padding-top: 16px; }
+
+.note-bar .popup-trigger { width: auto; min-height: 27px; padding: 2px 7px; font-size: 12px; }

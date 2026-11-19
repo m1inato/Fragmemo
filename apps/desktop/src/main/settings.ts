@@ -17,12 +17,14 @@ export interface LocalSettings {
 
 /** Secrets are stored encrypted with the OS keychain (safeStorage), see ai.ts. */
 export interface StoredAiSettings {
-  purposes: { write: { provider: AiProviderId; model: string }; qa: { provider: AiProviderId; model: string } }
+  purposes: Record<'write' | 'qa', { provider: AiProviderId; model: string; effort?: string }>
+  deepseek: { key: string }
   claude: { path: string; model: string; baseUrl: string; authToken: string }
   openai: { baseUrl: string; model: string; apiKey: string }
 }
 
 const DEFAULT_AI: StoredAiSettings = {
+  deepseek: { key: '' },
   purposes: { write: { provider: 'claude-cli', model: '' }, qa: { provider: 'claude-cli', model: '' } },
   claude: { path: '', model: '', baseUrl: '', authToken: '' },
   openai: { baseUrl: 'https://api.openai.com/v1', model: '', apiKey: '' }
@@ -75,6 +77,7 @@ export function mergeAi(base: StoredAiSettings, patch: unknown): StoredAiSetting
       write: { ...base.purposes.write, ...(purposes.write ?? {}) },
       qa: { ...base.purposes.qa, ...(purposes.qa ?? {}) }
     },
+    deepseek: { ...base.deepseek, ...(p.deepseek ?? {}) },
     claude: { ...base.claude, ...(p.claude ?? {}) },
     openai: { ...base.openai, ...(p.openai ?? {}) }
   }

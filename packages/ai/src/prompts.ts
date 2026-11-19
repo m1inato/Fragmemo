@@ -47,7 +47,9 @@ export const prompts = {
       `为卡组「${o.deckName}」制作 ${o.count} 条新笔记。`,
       `需求：${o.request}`,
       o.made.length ? `这个卡组里已经有：${o.made.join('、')}。不要重复。` : '',
-      '每条单词至少配一个例句。'
+      '先提交可用的笔记，工具核对集中批量做，不要逐条搜索耗尽工具次数。',
+      '词汇卡至少配一个例句。五十音指假名本身，每条写一个平假名，释义写片假名与罗马音，按五十音顺序制作；假名卡不需要例句。',
+      '结束前必须调用 propose_notes。只输出文字不会创建任何卡片。'
     ].filter(Boolean).join('\n'),
 
   extractFromText: (o: { text: string }) =>

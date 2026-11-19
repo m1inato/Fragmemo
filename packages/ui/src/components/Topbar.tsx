@@ -23,7 +23,7 @@ export function MainTopbar({ mac }: { mac: boolean }) {
 
   return (
     <header className={`topbar main-topbar${mac ? ' main-topbar-mac' : ''}`}>
-      <button className="brand" onClick={() => go({ name: 'home' })}>
+      <button className="brand" aria-label="Fragmemo 主页" aria-current={view.name === 'activity' ? 'page' : undefined} onClick={() => go({ name: 'activity' })}>
         <Mark size={24} />
         Fragmemo
       </button>
@@ -61,6 +61,9 @@ export function TopActions() {
   const waiting = tasks.some((t) => (t.result?.pending.length ?? 0) > 0 && !t.result?.undone)
   return (
     <>
+      <button className={`icon-button bordered${panel === 'notes' ? ' active' : ''}`} title="笔记" aria-pressed={panel === 'notes'} onClick={() => setPanel(panel === 'notes' ? null : 'notes')}>
+        <Icon name="edit" />
+      </button>
       <button className={`icon-button bordered${panel === 'qa' ? ' active' : ''}`} title="问答" onClick={() => setPanel(panel === 'qa' ? null : 'qa')}>
         <Icon name="chat" />
       </button>

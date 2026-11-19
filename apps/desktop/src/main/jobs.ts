@@ -38,6 +38,11 @@ const aiRunner: Runner = {
       ids: createIds(),
       signal: ctx.signal,
       report: ctx.report,
+      onDeckResolved: (deckId: string) => {
+        if (task.input.kind === 'generate-deck' && 'name' in task.input.deck) {
+          updateTask(task.id, { input: { ...task.input, deck: { id: deckId } } })
+        }
+      },
       onApplied: (p: Proposal[]) => void record(p).catch(() => {}),
       onEvent: (e: { type: string }) => e.type !== 'text' && ctx.log(e as Record<string, unknown>)
     }

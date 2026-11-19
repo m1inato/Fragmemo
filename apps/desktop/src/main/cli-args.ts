@@ -6,6 +6,7 @@ export function claudeArgs(o: {
   mcpUrl: string
   mcpToken: string
   model?: string
+  effort?: string
   session?: string
 }): string[] {
   const mcp = { mcpServers: { fragmemo: { type: 'http', url: o.mcpUrl, headers: { Authorization: `Bearer ${o.mcpToken}` } } } }
@@ -22,6 +23,7 @@ export function claudeArgs(o: {
     '--mcp-config', JSON.stringify(mcp),
     '--allowedTools', 'mcp__fragmemo',
     '--disable-slash-commands',
+    ...(o.effort ? ['--effort', o.effort] : []),
     ...(o.model ? ['--model', o.model] : []),
     ...(o.session ? ['--resume', o.session] : [])
   ]

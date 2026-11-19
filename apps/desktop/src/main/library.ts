@@ -2,7 +2,7 @@ import {
   createIds, createLibrary, noteKey, paths, systemClock,
   type DeckMeta, type ImportResult, type Lang, type LangSummary, type Library, type Note, type Settings, type SettingsPatch, type Storage
 } from '@fragmemo/core'
-import type { NoteDraft } from '@fragmemo/ui/api'
+import { PRESET_PACKAGES, type PresetPackageId, type NoteDraft } from '@fragmemo/ui/api'
 import { app, dialog, shell, type BrowserWindow } from 'electron'
 import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -49,6 +49,26 @@ export function notifyChanged() {
 export function libraryStorage(): Storage {
   if (!current) throw new Error('还没有打开 Library')
   return current.storage
+}
+
+function notebookFile(root: string, deckId?: string) {
+  if (libraryRoot() !== root) throw new Error('词库已切换')
+  return deckId ? paths.deck(deckId) + '/notebook.json' : 'notebook.json'
+}
+
+let notebookWrites = Promise.resolve()
+
+export async function readNotebook(root: string, deckId?: string) {
+  await notebookWrites
+  return libraryStorage().readText(notebookFile(root, deckId))
+}
+
+export function writeNotebook(root: string, deckId: string | undefined, document: string) {
+  const file = notebookFile(root, deckId)
+  const storage = libraryStorage()
+  const write = notebookWrites.then(() => storage.writeText(file, document))
+  notebookWrites = write.catch(() => {})
+  return write
 }
 
 export function libraryRoot(): string | null {
@@ -181,10 +201,22 @@ export async function importApkg(win: BrowserWindow, o: { withHistory: boolean }
   })
   const file = res.filePaths[0]
   if (res.canceled || !file) return null
-  const bytes = new Uint8Array(await readFile(file))
   const lib = library()
+  return importPackage(lib, await readFile(file), o.withHistory)
+}
+
+export async function importPreset(id: PresetPackageId, withHistory: boolean) {
+  if (!Object.hasOwn(PRESET_PACKAGES, id)) throw new Error('未知预设卡包')
+  const lib = library()
+  const root = app.isPackaged ? process.resourcesPath : __dirname
+  const bytes = await readFile(join(root, 'presets', id + '.apkg'))
+  if (library() !== lib) throw new Error('词库已切换，请重新导入')
+  return importPackage(lib, bytes, withHistory)
+}
+
+async function importPackage(lib: Library, bytes: Uint8Array, withHistory: boolean) {
   const result = await lib.importApkg(bytes)
-  if (o.withHistory) await lib.importRevlog(bytes)
+  if (withHistory) await lib.importRevlog(bytes)
   await commit(`import: ${result.deck.id}`)
   notify()
   return result

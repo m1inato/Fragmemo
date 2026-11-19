@@ -2,6 +2,7 @@
 
 const paths = {
   back: 'M15 18l-6-6 6-6',
+  down: 'M6 9l6 6 6-6',
   next: 'M9 18l6-6-6-6',
   plus: 'M12 5v14 M5 12h14',
   x: 'M18 6L6 18 M6 6l12 12',

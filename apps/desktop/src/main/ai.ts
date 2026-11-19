@@ -3,6 +3,7 @@ import { createAnalyzer, createIds, type Analyzer, type Lang } from '@fragmemo/c
 import type { AiPurpose, AiSettings, AiSettingsPatch } from '@fragmemo/ui/api'
 import { app, safeStorage } from 'electron'
 import { join } from 'node:path'
+import { codexProvider } from './codex'
 import { createClaudeCliProvider } from './claude'
 import { commit, library } from './library'
 import { getSettings, mergeAi, saveSettings, type StoredAiSettings } from './settings'
@@ -30,9 +31,9 @@ const open = (s: string) => {
 }
 
 export function getAiSettings(): AiSettings {
-  const { purposes, claude, openai } = getSettings().ai
+  const { purposes, claude, openai, deepseek } = getSettings().ai
   return {
-    purposes,
+    purposes, deepseek: { hasKey: !!deepseek.key },
     claude: { path: claude.path, model: claude.model, baseUrl: claude.baseUrl, hasAuthToken: !!claude.authToken },
     openai: { baseUrl: openai.baseUrl, model: openai.model, hasApiKey: !!openai.apiKey }
   }
@@ -42,6 +43,7 @@ export function saveAiSettings(patch: AiSettingsPatch): AiSettings {
   const cur = getSettings().ai
   const next: StoredAiSettings = mergeAi(cur, {
     purposes: patch.purposes,
+    deepseek: patch.deepseek ? { key: seal(patch.deepseek.key) } : undefined,
     claude: { ...patch.claude, ...(patch.claude?.authToken !== undefined ? { authToken: seal(patch.claude.authToken) } : {}) },
     openai: { ...patch.openai, ...(patch.openai?.apiKey !== undefined ? { apiKey: seal(patch.openai.apiKey) } : {}) }
   })
@@ -50,12 +52,21 @@ export function saveAiSettings(patch: AiSettingsPatch): AiSettings {
 }
 
 export function providerFor(purpose: AiPurpose): Provider {
-  const { purposes, claude, openai } = getSettings().ai
+  const { purposes, claude, openai, deepseek } = getSettings().ai
   const choice = purposes[purpose]
+  const workDir = join(app.getPath('userData'), 'agent')
+  if (choice.provider === 'codex-cli') return codexProvider(workDir, choice.model, choice.effort)
+  if (choice.provider === 'deepseek') {
+    const authToken = open(deepseek.key)
+    if (!authToken) throw new Error('请先在设置里保存 DeepSeek API Key')
+    return createClaudeCliProvider({ path: claude.path, workDir, model: choice.model || 'deepseek-flash', effort: choice.effort,
+      baseUrl: 'https://api.deepseek.com/anthropic', authToken, deepseek: true })
+  }
   if (choice.provider === 'openai-compatible') {
     return createOpenAICompatProvider({ baseUrl: openai.baseUrl, apiKey: open(openai.apiKey), model: choice.model || openai.model })
   }
   return createClaudeCliProvider({
+    effort: choice.effort,
     path: claude.path || undefined,
     model: choice.model || claude.model || undefined,
     baseUrl: claude.baseUrl || undefined,
@@ -68,6 +79,7 @@ export function providerFor(purpose: AiPurpose): Provider {
 export async function testAi(purpose: AiPurpose): Promise<string> {
   const provider = providerFor(purpose)
   if (!(await provider.available())) {
+    if (provider.id === 'codex-cli') throw new Error('请安装 ChatGPT 桌面版或 Codex CLI，并登录 ChatGPT')
     throw new Error(provider.id === 'claude-cli' ? '没找到 Claude Code，装好后在终端里登录一次' : '先填好 Base URL、API key 和模型')
   }
   const res = await runAgent({

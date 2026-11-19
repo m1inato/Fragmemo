@@ -24,6 +24,22 @@ async function seeded(n = 6) {
 }
 
 describe('library', () => {
+  it('counts effective reviews per learning day and lists each studied word once', async () => {
+    const { lib, clock } = await seeded(3)
+    clock.set(new Date(2026, 10, 19, 3, 59).getTime())
+    await lib.saveSettings({ review: { dayStartHour: 4 } })
+    const answer = { rating: 3, mode: 'flip', durationMs: 1000 } as const
+    await lib.review('w1:0', answer)
+    clock.advance(60_000)
+    await lib.review('w1:1', answer)
+    await lib.review('w2:0', answer)
+    await lib.review('w3:0', answer)
+    await lib.undo()
+    const activity = await lib.studyActivity()
+    expect(activity.days.map(day => day.count)).toEqual([0, 0, 0, 0, 0, 1, 2])
+    expect(activity.recent.map(item => item.term)).toEqual(['悲しい', '嬉しい'])
+  })
+
   it('writes decks as plain files', async () => {
     const { mem, deck } = await seeded(2)
     expect(deck.id).toBe('n3-emotion')

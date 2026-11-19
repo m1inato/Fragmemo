@@ -93,7 +93,7 @@ export function Library() {
   )
 }
 
-function DeckList() {
+export function DeckList() {
   const { langs, openCreateDeck } = useShell()
   const [filter, setFilter] = useState<Filter>('all')
   const [query, setQuery] = useState('')
@@ -133,6 +133,7 @@ function DeckCard({ deck: d }: { deck: DeckSummary }) {
   const left = d.due + d.fresh
   return (
     <article className="card deck" onClick={() => go({ name: 'deck', deckId: d.id })}>
+      <div className={'deck-cover cover-' + d.lang} aria-hidden="true">{d.lang === 'ja' ? 'あ' : 'Aa'}</div>
       <h3>{d.name}</h3>
       <p className="deck-meta faint">{d.notes} 条笔记 · {d.cards} 张卡</p>
       <div className="deck-foot">

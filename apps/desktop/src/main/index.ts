@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url'
 import type { TaskInput } from '@fragmemo/ai'
 import type { AiPurpose, AiSettingsPatch, TaskAction } from '@fragmemo/ui/api'
 import type { Lang } from '@fragmemo/core'
+import { codexModels } from './codex'
 import * as ai from './ai'
 import * as jobs from './jobs'
 import * as lib from './library'
@@ -75,7 +76,10 @@ function registerMediaProtocol() {
 }
 
 function handle<A extends unknown[], R>(channel: string, fn: (...args: A) => R | Promise<R>) {
-  ipcMain.handle(channel, (_e: IpcMainInvokeEvent, ...args: unknown[]) => fn(...(args as A)))
+  ipcMain.handle(channel, (event: IpcMainInvokeEvent, ...args: unknown[]) => {
+    if (!win || event.senderFrame !== win.webContents.mainFrame) throw new Error('仅限 Fragmemo 主窗口')
+    return fn(...(args as A))
+  })
 }
 
 function broadcast(channel: string, payload?: unknown) {
@@ -103,6 +107,10 @@ function registerIpc(libraryReady: Promise<void>) {
   handle('settings:get', lib.getLibrarySettings)
   handle('settings:save', lib.saveLibrarySettings)
 
+  handle('notebook:read', lib.readNotebook)
+  handle('notebook:write', lib.writeNotebook)
+  handle('study:activity', () => lib.library().studyActivity())
+  handle('decks:importPreset', lib.importPreset)
   handle('decks:overview', lib.overview)
   handle('decks:create', lib.createDeck)
   handle('decks:importApkg', (o: { withHistory: boolean }) => (win ? lib.importApkg(win, o) : null))
@@ -117,6 +125,7 @@ function registerIpc(libraryReady: Promise<void>) {
   handle('review:pin', review.pinMode)
   handle('review:finish', review.finish)
 
+  handle('ai:codexModels', codexModels)
   handle('ai:getSettings', ai.getAiSettings)
   handle('ai:saveSettings', (patch: AiSettingsPatch) => ai.saveAiSettings(patch))
   handle('ai:test', (purpose: AiPurpose) => ai.testAi(purpose))

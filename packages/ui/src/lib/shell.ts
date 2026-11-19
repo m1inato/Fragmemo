@@ -15,11 +15,12 @@ export type ImportPreset = Pick<GeneratePreset, 'lang' | 'text'>
 
 export type View =
   | { name: 'home' }
+  | { name: 'activity' }
   | { name: 'library' }
   | { name: 'import'; preset?: ImportPreset }
   | { name: 'deck'; deckId: string }
   | { name: 'review'; scope: ReviewScope; title: string }
-export type Panel = 'qa' | 'tasks'
+export type Panel = 'qa' | 'tasks' | 'notes'
 
 /** Everything the frame around the pages shares: navigation, the right panel, AI entry points. */
 export interface Shell {

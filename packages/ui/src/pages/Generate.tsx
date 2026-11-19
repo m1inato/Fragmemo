@@ -1,3 +1,4 @@
+import { Popup, PopupOption } from '../components/Popup'
 import type { TaskInput } from '@fragmemo/ai'
 import type { Lang } from '@fragmemo/core'
 import { useState } from 'react'
@@ -79,13 +80,16 @@ export function Generate({ preset, onClose, onCreated }: { preset: GeneratePrese
         </div>
       </div>
       {needsDeck && (
-        <label className="field">
+        <div className="field">
           <span>放进哪个卡组</span>
-          <select value={deckId} onChange={(e) => setDeckId(e.target.value)}>
-            <option value="">新建卡组…</option>
-            {decks.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
-        </label>
+          <Popup label="选择卡组" value={decks.find(deck => deck.id === deckId)?.name ?? '新建卡组…'}>
+            {dismiss => <div className="popup-options">
+              <PopupOption label="新建卡组…" selected={!deckId} onClick={() => { setDeckId(''); dismiss() }} />
+              {decks.map(deck => <PopupOption key={deck.id} label={deck.name} selected={deckId === deck.id}
+                onClick={() => { setDeckId(deck.id); dismiss() }} />)}
+            </div>}
+          </Popup>
+        </div>
       )}
       {needsDeck && !deckId && (
         <label className="field field-wide">

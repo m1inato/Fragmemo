@@ -2,7 +2,7 @@ import type { AnkiCollection, SqlLoader } from './anki/apkg'
 import { decodeEntities } from './anki/template'
 import { pickDistractors } from './distractors'
 import { pickMode } from './modes'
-import { cardFaces, cardIdOf, noteKey, parseCardId } from './notes'
+import { cardFaces, cardIdOf, noteTitle, noteKey, parseCardId } from './notes'
 import { normalizeRelative, paths, toSegment } from './paths'
 import type { Clock, Ids, Storage, SyncBackend } from './platform'
 import { applyReview, createScheduler, effectiveReviews, replay, type Scheduler } from './replay'
@@ -42,6 +42,11 @@ export interface LangSummary {
   decks: DeckSummary[]
 }
 
+export interface StudyActivity {
+  days: { date: string; count: number }[]
+  recent: { id: string; term: string; deckId: string; deckName: string; at: number }[]
+}
+
 export interface ImportResult { deck: DeckMeta; added: number; updated: number }
 
 export interface Library {
@@ -49,6 +54,7 @@ export interface Library {
   saveSettings(patch: SettingsPatch): Promise<Settings>
 
   listDecks(): Promise<DeckMeta[]>
+  studyActivity(): Promise<StudyActivity>
   overview(): Promise<LangSummary[]>
   getDeck(deckId: string): Promise<DeckMeta | null>
   createDeck(o: { name: string; lang: Lang; tags?: string[]; source?: DeckMeta['source'] }): Promise<DeckMeta>
@@ -147,7 +153,9 @@ export function createLibrary(deps: LibraryDeps): Library {
       const tpl = await readTemplate(id, name)
       if (tpl) templates.set(name, tpl)
     }
-    return { meta: parsed.data, notes, templates }
+    const meta = parsed.data
+    if (meta.source === 'apkg') meta.name = importedDeckName(meta.name)
+    return { meta, notes, templates }
   }
 
   async function readTemplate(deckId: string, name: string): Promise<RawTemplate | null> {
@@ -320,7 +328,7 @@ export function createLibrary(deps: LibraryDeps): Library {
     const deck: DeckData = target ?? {
       meta: {
         id: await newDeckId(s, mainDeckName(col)),
-        name: mainDeckName(col),
+        name: importedDeckName(mainDeckName(col)),
         lang: guessLang(col),
         version: 1,
         tags: [],
@@ -396,6 +404,41 @@ export function createLibrary(deps: LibraryDeps): Library {
 
     async listDecks() {
       return [...(await state()).decks.values()].map((d) => d.meta).sort((a, b) => a.name.localeCompare(b.name))
+    },
+
+    async studyActivity() {
+      const s = await state()
+      const hour = s.settings.review.dayStartHour
+      const today = new Date(dayStart(clock.now(), hour))
+      const days = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date(today)
+        date.setDate(date.getDate() - 6 + i)
+        return { date: isoDate(date.getTime()), count: 0 }
+      })
+      const byDate = new Map(days.map(day => [day.date, day]))
+      const notes = new Map<string, { note: Note; deck: DeckMeta }>()
+      for (const { notes: entries, meta } of s.decks.values()) {
+        for (const note of entries) {
+          if (!note.deleted && (note.type === 'word' || note.type === 'raw')) notes.set(note.id, { note, deck: meta })
+        }
+      }
+      const recent: StudyActivity['recent'] = []
+      const seen = new Set<string>()
+      const first = new Date(today)
+      first.setDate(first.getDate() - 6)
+      for (const review of effectiveReviews(s.logs).reverse()) {
+        if (review.reviewedAt < first.getTime() && (recent.length === 8 || seen.size === notes.size)) break
+        const day = byDate.get(isoDate(dayStart(review.reviewedAt, hour)))
+        if (day) day.count++
+        if (recent.length === 8) continue
+        const { noteId } = parseCardId(review.cardId)
+        const entry = notes.get(noteId)
+        if (!entry || seen.has(noteId)) continue
+        seen.add(noteId)
+        const term = noteTitle(entry.note).trim()
+        if (term) recent.push({ id: noteId, term, deckId: entry.deck.id, deckName: entry.deck.name, at: review.reviewedAt })
+      }
+      return { days, recent }
     },
 
     async overview() {
@@ -699,6 +742,11 @@ function parseJson(text: string | null): unknown {
 }
 
 /** The deck most cards belong to, ignoring Anki's catch-all "Default". */
+// This package contains every JLPT level, which Fragmemo imports into one deck.
+function importedDeckName(name: string): string {
+  return name === 'NEW-JLPT · eggrolls-JLPT10k-v3.5 · 5-N1 · 3-低频' ? 'JLPT N1～N5 一万词 v3.5' : name
+}
+
 function mainDeckName(col: AnkiCollection): string {
   const counts = new Map<string, number>()
   for (const c of col.cards) {

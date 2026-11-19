@@ -21,6 +21,8 @@ function subscribe<T>(channel: string, fn: (payload: T) => void): () => void {
 }
 
 const api = {
+  readNotebook: (root, id) => invoke('notebook:read', root, id),
+  writeNotebook: (root, id, doc) => invoke('notebook:write', root, id, doc),
   getApp: () => invoke('app:get'),
   setTheme: (theme) => invoke('app:setTheme', theme),
   chooseLibrary: () => invoke('library:choose'),
@@ -29,6 +31,8 @@ const api = {
   getSettings: () => invoke('settings:get'),
   saveSettings: (patch) => invoke('settings:save', patch),
 
+  studyActivity: () => invoke('study:activity'),
+  importPreset: (id, history) => invoke('decks:importPreset', id, history),
   overview: () => invoke('decks:overview'),
   createDeck: (o) => invoke('decks:create', o),
   importApkg: (o) => invoke('decks:importApkg', o),
@@ -45,6 +49,7 @@ const api = {
 
   onLibraryChanged: (fn) => subscribe('library:changed', () => fn()),
 
+  codexModels: () => invoke('ai:codexModels'),
   getAiSettings: () => invoke('ai:getSettings'),
   saveAiSettings: (patch) => invoke('ai:saveSettings', patch),
   testAi: (purpose) => invoke('ai:test', purpose),

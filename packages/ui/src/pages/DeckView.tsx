@@ -46,7 +46,6 @@ export function DeckView({ deckId }: { deckId: string }) {
               <div className="hero-tags">
                 <span className="chip tint" style={{ '--h': langHue(deck.lang) } as React.CSSProperties}>{LANG_LABELS[deck.lang]}</span>
                 <span className="chip">{SOURCE_LABELS[deck.source]}</span>
-                <span className="mono faint">v{deck.version} · {deck.id}</span>
               </div>
               <h1>{deck.name}</h1>
               <p className="stats">
@@ -112,6 +111,6 @@ export function DeckView({ deckId }: { deckId: string }) {
 }
 
 function detail(n: Note): string {
-  if (n.type === 'raw') return stripHtml(Object.values(n.fields)[1] ?? '')
+  if (n.type === 'raw') return stripHtml(n.fields.VocabDefSC || n.fields.VocabDefTC || n.fields.definition || Object.values(n.fields)[1] || '')
   return answerText(n, 0)
 }

@@ -89,6 +89,11 @@ export async function act(id: string, action: TaskAction) {
       break
     case 'resume':
     case 'retry':
+      if (action === 'retry' && t.status === 'done' && t.input.kind === 'generate-deck' &&
+        t.result && t.result.applied === 0 && !t.result.pending.length && t.result.deckId) {
+        updateTask(id, { status: 'queued', input: { ...t.input, deck: { id: t.result.deckId } }, error: undefined, result: undefined })
+        break
+      }
       if (t.status === 'paused' || t.status === 'failed' || t.status === 'cancelled') updateTask(id, { status: 'queued', error: undefined })
       break
     case 'cancel':

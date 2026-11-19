@@ -1,13 +1,13 @@
 import type { Lang } from '@fragmemo/core'
 import { useEffect, useState } from 'react'
 import type { AppState, TaskRecord, Theme } from './api'
-import { Sidebar } from './components/Sidebar'
 import { ToastProvider } from './components/Toast'
 import { MainTopbar } from './components/Topbar'
 import { api } from './lib/api'
 import { ShellContext, type GeneratePreset, type Shell, type View } from './lib/shell'
 import { applyTheme } from './lib/theme'
 import { useAsync } from './lib/useAsync'
+import { Activity } from './pages/Activity'
 import { DeckView } from './pages/DeckView'
 import { Generate } from './pages/Generate'
 import { Home, Library } from './pages/Home'
@@ -22,7 +22,7 @@ type Dialog = { name: 'generate'; preset: GeneratePreset } | { name: 'create'; l
 
 export function App() {
   const [app, setApp] = useState<AppState | null>(null)
-  const [view, setView] = useState<View>({ name: 'home' })
+  const [view, setView] = useState<View>({ name: 'activity' })
   const [dialog, setDialog] = useState<Dialog | null>(null)
   const [tasks, setTasks] = useState<TaskRecord[]>([])
   const [panel, setPanel] = useState<Shell['panel']>(null)
@@ -92,9 +92,9 @@ export function App() {
           <div className="app">
             {!reviewing && <MainTopbar mac={app.platform === 'darwin'} />}
             <div className="app-content">
-              {!reviewing && <Sidebar />}
               <div className="main">
                 {view.name === 'review' && <Review scope={view.scope} title={view.title} onExit={() => setView({ name: 'home' })} />}
+                {view.name === 'activity' && <Activity />}
                 {view.name === 'home' && <Home />}
                 {view.name === 'library' && <Library />}
                 {view.name === 'deck' && <DeckView key={view.deckId} deckId={view.deckId} />}
@@ -106,7 +106,7 @@ export function App() {
                   />
                 )}
               </div>
-              {panel && !reviewing && <RightPanel />}
+              {panel && !reviewing && <RightPanel key={app.libraryPath} root={app.libraryPath} />}
             </div>
           </div>
         )}

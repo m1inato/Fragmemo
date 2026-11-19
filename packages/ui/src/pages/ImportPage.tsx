@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { PRESET_PACKAGES, type PresetPackageId } from '../api'
 import { Icon } from '../components/Icon'
 import { useToast } from '../components/Toast'
 import { api } from '../lib/api'
@@ -37,10 +38,10 @@ function AnkiImport({ onImported }: { onImported: (deckId: string) => void }) {
   const [withHistory, setWithHistory] = useState(true)
   const [busy, setBusy] = useState(false)
 
-  async function run() {
+  async function run(id?: PresetPackageId) {
     setBusy(true)
     try {
-      const result = await toast.track(api.importApkg({ withHistory }), {
+      const result = await toast.track(id ? api.importPreset(id, withHistory) : api.importApkg({ withHistory }), {
         pending: '正在导入…',
         done: (r) => (r ? `导入完成：新增 ${r.added} 条，更新 ${r.updated} 条` : null)
       }).catch(() => null)
@@ -51,6 +52,16 @@ function AnkiImport({ onImported }: { onImported: (deckId: string) => void }) {
   }
 
   return (
+    <>
+      <section className="card import-card package-presets">
+        <h2>预设卡包</h2>
+        {(['832276382', '657511105'] as const).map(id => (
+          <div className="preset-row" key={id}>
+            <strong>{PRESET_PACKAGES[id]}</strong>
+            <button className="button" disabled={busy} onClick={() => run(id)}>导入</button>
+          </div>
+        ))}
+      </section>
     <section className="card import-card" aria-label="导入 Anki 卡包">
       <p className="muted">支持 .apkg 和 .colpkg，保留原模板、图片和音频。</p>
       <div className="import-actions">
@@ -58,11 +69,12 @@ function AnkiImport({ onImported }: { onImported: (deckId: string) => void }) {
           <input type="checkbox" checked={withHistory} disabled={busy} onChange={(e) => setWithHistory(e.target.checked)} />
           同时导入复习记录
         </label>
-        <button className="button button-primary" onClick={run} disabled={busy}>
+        <button className="button button-primary" onClick={() => run()} disabled={busy}>
           <Icon name="folder" />
           {busy ? '正在导入…' : '选择 Anki 卡包'}
         </button>
       </div>
     </section>
+    </>
   )
 }

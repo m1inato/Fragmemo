@@ -17,11 +17,13 @@ export interface ClaudeCliConfig {
   /** Optional Anthropic-compatible endpoint (e.g. DeepSeek) instead of the logged-in account. */
   baseUrl?: string
   authToken?: string
+  effort?: string
+  deepseek?: boolean
   /** Working directory for sessions, away from any project's CLAUDE.md. */
   workDir: string
 }
 
-const CANDIDATES = [join(homedir(), '.local/bin/claude'), join(homedir(), '.claude/local/claude'), '/opt/homebrew/bin/claude', '/usr/local/bin/claude']
+const CANDIDATES = [join(homedir(), '.local/bin/claude'), join(homedir(), '.claude/local/claude'), join(homedir(), '.npm-global/bin/claude'), '/opt/homebrew/bin/claude', '/usr/local/bin/claude']
 
 export function createClaudeCliProvider(cfg: ClaudeCliConfig): CliProvider {
   // An explicit path is taken as is; only an unset one is searched for.
@@ -35,6 +37,10 @@ export function createClaudeCliProvider(cfg: ClaudeCliConfig): CliProvider {
     const e = cleanEnv()
     if (cfg.baseUrl) e.ANTHROPIC_BASE_URL = cfg.baseUrl
     if (cfg.authToken) e.ANTHROPIC_AUTH_TOKEN = cfg.authToken
+    if (cfg.deepseek) {
+      for (const key of ['ANTHROPIC_MODEL', 'ANTHROPIC_DEFAULT_OPUS_MODEL', 'ANTHROPIC_DEFAULT_SONNET_MODEL', 'ANTHROPIC_DEFAULT_HAIKU_MODEL', 'CLAUDE_CODE_SUBAGENT_MODEL']) e[key] = cfg.model
+      e.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = '1'
+    }
     return e
   }
 
@@ -61,7 +67,7 @@ export function createClaudeCliProvider(cfg: ClaudeCliConfig): CliProvider {
       })
       mkdirSync(cfg.workDir, { recursive: true })
       try {
-        return await runProcess(bin, claudeArgs({ system, mcpUrl: mcp.url, mcpToken: mcp.token, model: cfg.model, session }), {
+        return await runProcess(bin, claudeArgs({ system, mcpUrl: mcp.url, mcpToken: mcp.token, model: cfg.model, effort: cfg.effort, session }), {
           cwd: cfg.workDir, env: env(), stdin: prompt, signal, onEvent
         })
       } finally {

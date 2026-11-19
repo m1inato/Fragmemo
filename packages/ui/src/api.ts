@@ -1,7 +1,7 @@
 import type { Proposal, TaskInput, TaskKind } from '@fragmemo/ai'
 import type {
   AnswerMode, DeckMeta, GrammarNote, ImportResult, Lang, LangSummary, Note, Rating, ReviewItem, ReviewQueue,
-  ReviewScope, SentenceNote, Settings, SettingsPatch, WordNote
+  ReviewScope, StudyActivity, SentenceNote, Settings, SettingsPatch, WordNote
 } from '@fragmemo/core'
 
 // The UI's only door to the outside world. Each shell provides one implementation:
@@ -22,12 +22,15 @@ export type NoteDraft = Draft<WordNote> | Draft<SentenceNote> | Draft<GrammarNot
 
 export interface Answer { rating: Rating; mode: AnswerMode; correct?: boolean; durationMs: number }
 
-export type AiProviderId = 'claude-cli' | 'openai-compatible'
+export interface LocalModel { id: string; label: string; efforts: string[] }
+
+export type AiProviderId = 'codex-cli' | 'deepseek' | 'claude-cli' | 'openai-compatible'
 /** write: every task that changes notes; qa: the side panel. */
 export type AiPurpose = 'write' | 'qa'
 
 export interface AiSettings {
-  purposes: Record<AiPurpose, { provider: AiProviderId; model: string }>
+  purposes: Record<AiPurpose, { provider: AiProviderId; model: string; effort?: string }>
+  deepseek: { hasKey: boolean }
   claude: { path: string; model: string; baseUrl: string; hasAuthToken: boolean }
   openai: { baseUrl: string; model: string; hasApiKey: boolean }
 }
@@ -35,6 +38,7 @@ export interface AiSettings {
 /** Secrets are write-only: send a value to set it, an empty string to clear it. */
 export interface AiSettingsPatch {
   purposes?: Partial<AiSettings['purposes']>
+  deepseek?: { key: string }
   claude?: Partial<{ path: string; model: string; baseUrl: string; authToken: string }>
   openai?: Partial<{ baseUrl: string; model: string; apiKey: string }>
 }
@@ -71,7 +75,16 @@ export interface TaskRecord {
   result?: AiTaskResult
 }
 
+export const PRESET_PACKAGES = {
+  '832276382': '【egg rolls】JLPT N1～N5 一万词 v3.5',
+  '657511105': 'TOEFL 托福绿宝书 乱序版'
+} as const
+
+export type PresetPackageId = keyof typeof PRESET_PACKAGES
+
 export interface Api {
+  readNotebook(root: string, deckId?: string): Promise<string | null>
+  writeNotebook(root: string, deckId: string | undefined, document: string): Promise<void>
   getApp(): Promise<AppState>
   setTheme(theme: Theme): Promise<void>
   /** Pick or create a Library folder; null when cancelled. */
@@ -82,6 +95,8 @@ export interface Api {
   saveSettings(patch: SettingsPatch): Promise<Settings>
 
   /** Per-language totals and deck summaries for today. */
+  studyActivity(): Promise<StudyActivity>
+  importPreset(id: PresetPackageId, withHistory: boolean): Promise<ImportResult>
   overview(): Promise<LangSummary[]>
   createDeck(o: { name: string; lang: Lang }): Promise<DeckMeta>
   importApkg(o: { withHistory: boolean }): Promise<ImportResult | null>
@@ -99,6 +114,7 @@ export interface Api {
 
   onLibraryChanged(fn: () => void): () => void
 
+  codexModels(): Promise<LocalModel[]>
   getAiSettings(): Promise<AiSettings>
   saveAiSettings(patch: AiSettingsPatch): Promise<AiSettings>
   /** Resolves with a short status line, rejects with what is wrong. */

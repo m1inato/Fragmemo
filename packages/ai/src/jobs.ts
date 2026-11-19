@@ -1,7 +1,7 @@
 import { noteTitle, stripHtml, type Analyzer, type Lang, type Library, type Note } from '@fragmemo/core'
 import { applyProposals, runWritePipeline, type Issue } from './pipeline'
 import { prompts, writerSystem } from './prompts'
-import { allTools } from './tools'
+import { allTools, proposeNotes } from './tools'
 import type { AgentEvent, Proposal, Provider } from './types'
 
 // The AI tasks Fragmemo knows, as plain functions of (input, deps). The task queue in the
@@ -39,6 +39,7 @@ export interface JobDeps {
   report: (stage: string, progress: number) => void
   onEvent?: (e: AgentEvent) => void
   /** Called after each batch is written, so a later failure still knows what is on disk. */
+  onDeckResolved?: (deckId: string) => void
   onApplied?: (proposals: Proposal[]) => void
 }
 
@@ -61,12 +62,12 @@ export async function runJob(input: TaskInput, deps: JobDeps): Promise<JobResult
   const applied: Proposal[] = []
   const pending: PendingNote[] = []
 
-  const batch = async (prompt: string, deckId: string | undefined, label: string) => {
+  const batch = async (prompt: string, deckId: string | undefined, label: string, tools = allTools) => {
     const res = await runWritePipeline({
       provider: deps.provider,
       system,
       prompt,
-      tools: allTools,
+      tools,
       ctx: { library, analyzer: deps.analyzer, lang, deckId, ids: deps.ids },
       signal,
       onEvent: deps.onEvent,
@@ -81,6 +82,7 @@ export async function runJob(input: TaskInput, deps: JobDeps): Promise<JobResult
   switch (input.kind) {
     case 'generate-deck': {
       const deckId = await resolveDeck(library, input.deck, lang)
+      deps.onDeckResolved?.(deckId)
       const deckName = (await library.getDeck(deckId))!.name
       let left = input.count
       for (let i = 0; left > 0; i++) {
@@ -88,12 +90,17 @@ export async function runJob(input: TaskInput, deps: JobDeps): Promise<JobResult
         const n = Math.min(BATCH, left)
         deps.report(`第 ${i + 1} 批`, (input.count - left) / input.count)
         const made = (await library.getNotes(deckId)).map((x) => ('term' in x.fields ? String(x.fields.term) : '')).filter(Boolean)
-        const res = await batch(prompts.generateDeck({ request: input.request, count: n, deckName, made }), deckId, `第 ${i + 1} 批 · `)
+        const prompt = prompts.generateDeck({ request: input.request, count: n, deckName, made })
+        let res = await batch(prompt, deckId, `第 ${i + 1} 批 · `)
+        if (!res.applied.length && !res.pending.length && !applied.length && !pending.length) {
+          res = await batch(prompt + '\n直接调用 propose_notes 提交本批笔记。没有把握的可选字段留空。', deckId, '重试提交 · ', [proposeNotes])
+        }
         const produced = res.applied.filter((p) => p.isNew).length + res.pending.length
         // A batch that adds nothing means the model has run out of ideas; stop rather than loop.
         if (!produced) break
         left -= produced
       }
+      if (!applied.length && !pending.length) throw new Error('模型没有提交任何新笔记，可以重试。')
       return { summary: `新增 ${applied.length} 条笔记`, deckId, applied, pending }
     }
 

@@ -106,7 +106,7 @@ export function noteTitle(note: Note): string {
     case 'grammar':
       return note.fields.pattern
     case 'raw':
-      return stripHtml(Object.values(note.fields)[0] ?? '')
+      return stripHtml(note.fields.VocabKanji || note.fields.VocabFurigana || note.fields.word || Object.values(note.fields)[0] || '')
   }
 }
 

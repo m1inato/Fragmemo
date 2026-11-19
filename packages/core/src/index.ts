@@ -9,7 +9,7 @@ export { availableModes, pickMode, judgeSpelling, toHiragana, type SpellVerdict 
 export { pickDistractors } from './distractors'
 export { renderTemplate, renderRawCard, rewriteMedia, type RenderedCard } from './anki/template'
 export type { AnkiCollection, SqlLoader } from './anki/apkg'
-export { createLibrary, type Library, type LibraryDeps, type DeckSummary, type LangSummary, type ImportResult } from './library'
+export { createLibrary, type Library, type LibraryDeps, type DeckSummary, type LangSummary, type StudyActivity, type ImportResult } from './library'
 export { nextReview, prepareReview, type ReviewItem, type ReviewQueue, type ReviewScope, type ReviewHost } from './review'
 export { ulid, createIds, sha256Hex, parseJsonl, toJsonl, dayStart, isoDate } from './util'
 export { createAnalyzer, analyzeEnglish, usesTerm, readingOf, type Analyzer, type Token } from './text'

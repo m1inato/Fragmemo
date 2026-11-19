@@ -1,21 +1,24 @@
 import type { Lang } from '@fragmemo/core'
 import { useEffect, useState } from 'react'
-import type { AiProviderId, AiPurpose, AiSettings, AiSettingsPatch } from '../api'
+import type { AiProviderId, AiPurpose, AiSettings, AiSettingsPatch, LocalModel } from '../api'
+import { Popup, PopupOption } from '../components/Popup'
 import { errorText, useToast } from '../components/Toast'
 import { api } from '../lib/api'
 import { LANG_LABELS } from '../lib/format'
 
-const PROVIDERS: Record<AiProviderId, string> = { 'claude-cli': 'Claude Code（本机）', 'openai-compatible': 'OpenAI 兼容 API' }
-const PURPOSES: Record<AiPurpose, string> = { write: '生成与修改卡片', qa: '问答' }
+const PROVIDERS: Record<AiProviderId, string> = { 'codex-cli': 'ChatGPT（Codex）', deepseek: 'DeepSeek', 'claude-cli': 'Claude Code（本机）', 'openai-compatible': 'OpenAI 兼容 API' }
+const PURPOSES: Record<AiPurpose, string> = { write: '制卡', qa: '问答' }
 
 /** Which model does what. Keys stay on this Mac, encrypted with the system keychain. */
 export function AiSection() {
   const toast = useToast()
   const [s, setS] = useState<AiSettings | null>(null)
+  const [codexModels, setCodexModels] = useState<LocalModel[]>([])
   const [testing, setTesting] = useState<AiPurpose | null>(null)
 
   useEffect(() => {
     api.getAiSettings().then(setS)
+    api.codexModels().then(setCodexModels)
   }, [])
 
   async function save(patch: AiSettingsPatch) {
@@ -38,48 +41,98 @@ export function AiSection() {
   }
 
   if (!s) return null
-  const uses = (id: AiProviderId) => Object.values(s.purposes).some((p) => p.provider === id)
+  const models: Record<AiProviderId, string[]> = {
+    'codex-cli': codexModels.map(model => model.id), 'claude-cli': ['sonnet', 'opus', 'haiku'],
+    deepseek: ['deepseek-flash'], 'openai-compatible': s.openai.model ? [s.openai.model] : []
+  }
 
   return (
-    <>
-      <section className="settings-section">
-        <h3>用途</h3>
-        {(Object.keys(PURPOSES) as AiPurpose[]).map((purpose) => (
-          <div key={purpose} className="ai-purpose">
-            <span className="ai-purpose-label">{PURPOSES[purpose]}</span>
-            <select value={s.purposes[purpose].provider} onChange={(e) => save({ purposes: { [purpose]: { ...s.purposes[purpose], provider: e.target.value as AiProviderId } } })}>
-              {(Object.keys(PROVIDERS) as AiProviderId[]).map((id) => <option key={id} value={id}>{PROVIDERS[id]}</option>)}
-            </select>
-            <Field placeholder="默认模型" value={s.purposes[purpose].model} onCommit={(model) => save({ purposes: { [purpose]: { ...s.purposes[purpose], model } } })} />
-            <button className="button button-small" disabled={testing !== null} onClick={() => test(purpose)}>{testing === purpose ? '测试中…' : '测试'}</button>
-          </div>
-        ))}
-      </section>
-
-      {uses('claude-cli') && (
-        <section className="settings-section">
-          <h3>Claude Code</h3>
-          <p className="settings-hint">使用本机已登录的 claude 命令行，只开放 Fragmemo 自己的工具，不能读写其他文件。</p>
-          <div className="settings-grid">
-            <LabeledField label="模型" placeholder="例如 sonnet、haiku" value={s.claude.model} onCommit={(model) => save({ claude: { model } })} />
-            <LabeledField label="claude 路径" placeholder="自动查找" value={s.claude.path} onCommit={(path) => save({ claude: { path } })} />
-            <LabeledField label="Anthropic 兼容接口（可选）" placeholder="例如 DeepSeek 的地址" value={s.claude.baseUrl} onCommit={(baseUrl) => save({ claude: { baseUrl } })} />
-            <SecretField label="接口 Token" isSet={s.claude.hasAuthToken} onCommit={(authToken) => save({ claude: { authToken } })} />
-          </div>
-        </section>
-      )}
-
-      {uses('openai-compatible') && (
-        <section className="settings-section">
-          <h3>OpenAI 兼容 API</h3>
-          <div className="settings-grid">
-            <LabeledField label="Base URL" value={s.openai.baseUrl} onCommit={(baseUrl) => save({ openai: { baseUrl } })} />
-            <LabeledField label="模型" placeholder="例如 gpt-5-mini、deepseek-chat" value={s.openai.model} onCommit={(model) => save({ openai: { model } })} />
-            <SecretField label="API Key" isSet={s.openai.hasApiKey} onCommit={(apiKey) => save({ openai: { apiKey } })} />
-          </div>
-        </section>
-      )}
-    </>
+    <section className="settings-section preference-group">
+      <h3>模型选择</h3>
+      <div className="model-preferences">
+        <div className="service-list">
+          <details name="model-services">
+            <summary><strong>Claude</strong><span>订阅</span><span className="service-state">Claude Code</span></summary>
+            <div className="service-content settings-grid">
+              <LabeledField label="默认模型" placeholder="例如 sonnet" value={s.claude.model} onCommit={model => save({ claude: { model } })} />
+              <LabeledField label="Claude Code 路径" placeholder="自动查找" value={s.claude.path} onCommit={path => save({ claude: { path } })} />
+              <LabeledField label="兼容接口地址" placeholder="可选" value={s.claude.baseUrl} onCommit={baseUrl => save({ claude: { baseUrl } })} />
+              <SecretField label="接口 Token" isSet={s.claude.hasAuthToken} onCommit={authToken => save({ claude: { authToken } })} />
+            </div>
+          </details>
+          <details name="model-services">
+            <summary><strong>ChatGPT</strong><span>订阅</span><span className={`service-state${codexModels.length ? ' service-found' : ''}`}>{codexModels.length ? '已发现本机 Codex' : '使用本机 Codex'}</span></summary>
+            <p className="service-content settings-hint">复用本机 ChatGPT 或 Codex 的登录状态。首次登录可在终端运行 <code>codex login</code>。</p>
+          </details>
+          <details name="model-services">
+            <summary><strong>DeepSeek</strong><span>API</span><span className="service-state">{s.deepseek.hasKey ? '已保存 Key' : '配置 Key'}</span></summary>
+            <div className="service-content">
+              <SecretField label="DeepSeek API Key" isSet={s.deepseek.hasKey} onCommit={key => save({ deepseek: { key } })} />
+              <p className="settings-hint">通过本机 Claude Code 调用。</p>
+            </div>
+          </details>
+          <details name="model-services">
+            <summary><strong>OpenAI 兼容</strong><span>API</span><span className="service-state">{s.openai.hasApiKey ? '已保存 Key' : '配置接口'}</span></summary>
+            <div className="service-content settings-grid">
+              <LabeledField label="Base URL" value={s.openai.baseUrl} onCommit={baseUrl => save({ openai: { baseUrl } })} />
+              <LabeledField label="默认模型" value={s.openai.model} onCommit={model => save({ openai: { model } })} />
+              <SecretField label="API Key" isSet={s.openai.hasApiKey} onCommit={apiKey => save({ openai: { apiKey } })} />
+            </div>
+          </details>
+        </div>
+        {(Object.keys(PURPOSES) as AiPurpose[]).map(purpose => {
+          const choice = s.purposes[purpose]
+          const update = (patch: Partial<typeof choice>) => save({ purposes: { [purpose]: { ...choice, ...patch } } })
+          const labelFor = (provider: AiProviderId, model: string) =>
+            provider === 'codex-cli' ? codexModels.find(entry => entry.id === model)?.label ?? model : model
+          const title = labelFor(choice.provider, choice.model) || PROVIDERS[choice.provider] + ' · 默认'
+          const efforts = choice.provider === 'codex-cli'
+            ? codexModels.find(model => model.id === choice.model)?.efforts ?? ['low', 'medium', 'high']
+            : choice.provider === 'deepseek' ? ['low', 'high', 'max'] : ['low', 'medium', 'high']
+          const providers = [choice.provider, ...(Object.keys(PROVIDERS) as AiProviderId[]).filter(provider => provider !== choice.provider)]
+          return (
+            <div className="preference-line model-purpose" key={purpose}>
+              <span>{PURPOSES[purpose]}</span>
+              <Popup label={PURPOSES[purpose] + '模型'} value={<>{title}{choice.effort && <small> · {choice.effort}</small>}</>}>
+                {() => <>
+                  <div className="popup-options model-options">
+                    {providers.map(provider => (
+                      <section className="popup-group" key={provider}>
+                        <h4>{PROVIDERS[provider]}</h4>
+                        {[...new Set([...models[provider], '', ...(provider === choice.provider ? [choice.model] : [])])].map(model =>
+                          <PopupOption key={model} label={labelFor(provider, model) || '默认模型'}
+                            selected={provider === choice.provider && model === choice.model}
+                            onClick={() => {
+                              if (provider === choice.provider && model === choice.model) return
+                              const nextEfforts = codexModels.find(entry => entry.id === model)?.efforts
+                              const preserveEffort = provider === choice.provider && (!nextEfforts || nextEfforts.includes(choice.effort ?? ''))
+                              update({ provider, model, effort: preserveEffort ? choice.effort : '' })
+                            }} />)}
+                      </section>
+                    ))}
+                  </div>
+                  {choice.provider !== 'openai-compatible' && efforts.length > 0 && <div className="popup-effort">
+                    <span>推理强度</span>
+                    <div className="segmented" role="group" aria-label="推理强度">
+                      {['', ...new Set([...efforts, ...(choice.effort ? [choice.effort] : [])])].map(effort => (
+                        <button key={effort} type="button" className={(choice.effort ?? '') === effort ? 'active' : ''}
+                          aria-pressed={(choice.effort ?? '') === effort} onClick={() => update({ effort })}>{effort || '默认'}</button>
+                      ))}
+                    </div>
+                  </div>}
+                  <div className="popup-footer">
+                    <details className="custom-model"><summary>自定义模型</summary>
+                      <Field placeholder="模型 ID" value={choice.model && !models[choice.provider].includes(choice.model) ? choice.model : ''} onCommit={model => update({ model })} />
+                    </details>
+                    <button type="button" className="button button-small" disabled={testing !== null} onClick={() => test(purpose)}>{testing === purpose ? '连接中…' : '检查连接'}</button>
+                  </div>
+                </>}
+              </Popup>
+            </div>
+          )
+        })}
+      </div>
+    </section>
   )
 }
 
@@ -105,7 +158,9 @@ export function ProfileSection() {
   }
 
   return (
-    <section className="settings-section">
+    <section className="settings-section preference-group">
+      <h3>学习档案</h3>
+      <div className="profile-preference">
       <p className="settings-hint">AI 每次生成卡片、回答问题都会先读这份档案：母语、水平、目标、偏好，写得越具体越贴合你。</p>
       <div className="segmented">
         {(['ja', 'en'] as Lang[]).map((l) => (
@@ -116,15 +171,16 @@ export function ProfileSection() {
       <div className="settings-actions">
         <button className="button button-primary" disabled={text === null || text === saved} onClick={save}>保存</button>
       </div>
+      </div>
     </section>
   )
 }
 
-function Field({ value, placeholder, onCommit }: { value: string; placeholder?: string; onCommit: (v: string) => void }) {
+function Field({ value, placeholder, onCommit, list }: { list?: string; value: string; placeholder?: string; onCommit: (v: string) => void }) {
   const [draft, setDraft] = useState(value)
   useEffect(() => setDraft(value), [value])
   const commit = () => draft.trim() !== value && onCommit(draft.trim())
-  return <input value={draft} placeholder={placeholder} onChange={(e) => setDraft(e.target.value)} onBlur={commit} onKeyDown={(e) => e.key === 'Enter' && commit()} />
+  return <input list={list} aria-label={placeholder} value={draft} placeholder={placeholder} onChange={(e) => setDraft(e.target.value)} onBlur={commit} onKeyDown={(e) => e.key === 'Enter' && commit()} />
 }
 
 function LabeledField({ label, ...rest }: { label: string; value: string; placeholder?: string; onCommit: (v: string) => void }) {

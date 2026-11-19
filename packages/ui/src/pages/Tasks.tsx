@@ -50,7 +50,8 @@ function TaskItem({ task }: { task: TaskRecord }) {
       <div className="task-actions">
         {(task.status === 'queued' || busy) && <button className="button button-small" onClick={() => act('pause')}>暂停</button>}
         {task.status === 'paused' && <button className="button button-small" onClick={() => act('resume')}>继续</button>}
-        {(task.status === 'failed' || task.status === 'cancelled') && <button className="button button-small" onClick={() => act('retry')}>重试</button>}
+        {(task.status === 'failed' || task.status === 'cancelled' ||
+          (task.status === 'done' && task.kind === 'generate-deck' && r?.deckId && !r.applied && !r.pending.length)) && <button className="button button-small" onClick={() => act('retry')}>重试</button>}
         {(task.status === 'queued' || busy || task.status === 'paused') && <button className="button button-small" onClick={() => act('cancel')}>取消</button>}
         {task.status === 'done' && r && r.applied > 0 && !r.undone && (
           <button className="button button-small" onClick={() => toast.track(api.taskAction(task.id, 'undo'), { pending: '正在撤销…', done: '已撤销这一批' }).catch(() => {})}>
