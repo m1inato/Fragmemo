@@ -87,8 +87,11 @@ function appState() {
   return { libraryPath: lib.libraryRoot(), deviceId: s.deviceId, theme: s.theme, version: app.getVersion(), platform: process.platform }
 }
 
-function registerIpc() {
-  handle('app:get', appState)
+function registerIpc(libraryReady: Promise<void>) {
+  handle('app:get', async () => {
+    await libraryReady
+    return appState()
+  })
   handle('app:setTheme', (theme: Theme) => {
     saveSettings({ theme })
     win?.setBackgroundColor(background(theme))
@@ -133,13 +136,13 @@ function registerIpc() {
 
 app.whenReady().then(() => {
   registerMediaProtocol()
-  registerIpc()
   jobs.registerAiRunners()
-  lib.initLibrary(
+  const libraryReady = lib.initLibrary(
     () => broadcast('library:changed'),
     (storage, deviceId) =>
       tasks.initTasks(storage, deviceId, (list) => broadcast('tasks:changed', list))
   )
+  registerIpc(libraryReady)
   createWindow()
   app.on('activate', () => {
     if (!BrowserWindow.getAllWindows().length) createWindow()

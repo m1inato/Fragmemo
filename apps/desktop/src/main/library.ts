@@ -4,7 +4,7 @@ import {
 } from '@fragmemo/core'
 import type { NoteDraft } from '@fragmemo/ui/api'
 import { app, dialog, shell, type BrowserWindow } from 'electron'
-import { readdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import initSqlJs from 'sql.js'
 import { createNodeStorage, resolveInside } from './storage'
@@ -16,11 +16,23 @@ let notify: () => void = () => {}
 let opened: (storage: Storage, deviceId: string) => void = () => {}
 
 /** `onOpen` runs each time a Library is opened, for modules that keep state inside it. */
-export function initLibrary(onChanged: () => void, onOpen: (storage: Storage, deviceId: string) => void) {
+export async function initLibrary(onChanged: () => void, onOpen: (storage: Storage, deviceId: string) => void) {
   notify = onChanged
   opened = onOpen
-  const { libraryPath } = getSettings()
-  if (libraryPath) open(libraryPath).catch((err) => console.error('[library] open failed', err))
+  try {
+    const { libraryPath } = getSettings()
+    if (libraryPath) {
+      await open(libraryPath)
+      return
+    }
+    const root = process.env.FRAGMEMO_USER_DATA
+      ? join(app.getPath('userData'), 'Library')
+      : join(app.getPath('documents'), 'Fragmemo')
+    await mkdir(root, { recursive: true })
+    await openOrCreate(root, { ignoreHidden: false })
+  } catch (err) {
+    console.error('[library] open failed', err)
+  }
 }
 
 export function library(): Library {
@@ -44,29 +56,40 @@ export function libraryRoot(): string | null {
 }
 
 async function open(root: string) {
+  if (!(await stat(root)).isDirectory()) throw new Error('Library 必须是文件夹')
   const sync = createGitSync(root)
   await sync.init().catch((err) => console.warn('[library] git unavailable, history disabled', err))
   await sync.pull().catch((err) => console.warn('[library] pull failed', err))
   const { deviceId } = getSettings()
   const storage = createNodeStorage(root)
-  current = {
-    root,
-    sync,
+  const lib = createLibrary({
     storage,
-    lib: createLibrary({
-      storage,
-      sync,
-      clock: systemClock,
-      ids: createIds(),
-      deviceId,
-      // The wasm is emitted next to the main bundle (see electron.vite.config.ts).
-      loadSql: () => initSqlJs({ locateFile: (f) => join(__dirname, f) })
-    })
-  }
-  await current.lib.listDecks()
+    sync,
+    clock: systemClock,
+    ids: createIds(),
+    deviceId,
+    // The wasm is emitted next to the main bundle (see electron.vite.config.ts).
+    loadSql: () => initSqlJs({ locateFile: (f) => join(__dirname, f) })
+  })
+  await lib.listDecks()
   saveSettings({ libraryPath: root })
+  current = { root, lib, storage, sync }
   opened(storage, deviceId)
   notify()
+}
+
+async function openOrCreate(root: string, { ignoreHidden = true } = {}) {
+  const entries = await readdir(root)
+  const isLibrary = entries.includes(paths.decks) || entries.includes(paths.settings)
+  if (!isLibrary) {
+    if (entries.some((name) => !ignoreHidden || !name.startsWith('.'))) {
+      throw new Error('这个文件夹里已经有别的东西了，换一个空文件夹吧')
+    }
+    await writeFile(resolveInside(root, paths.settings), '{}\n', { flag: 'wx' }).catch((err: NodeJS.ErrnoException) => {
+      if (err.code !== 'EEXIST') throw err
+    })
+  }
+  await open(root)
 }
 
 /** Let the user pick a folder: an existing Library opens, an empty folder becomes one. */
@@ -79,11 +102,7 @@ export async function chooseLibrary(win: BrowserWindow): Promise<string | null> 
   })
   const root = res.filePaths[0]
   if (res.canceled || !root) return null
-  const entries = (await readdir(root)).filter((n) => !n.startsWith('.'))
-  const isLibrary = entries.includes(paths.decks) || entries.includes(paths.settings)
-  if (entries.length && !isLibrary) throw new Error('这个文件夹里已经有别的东西了，换一个空文件夹吧')
-  if (!isLibrary) await writeFile(resolveInside(root, paths.settings), '{}\n')
-  await open(root)
+  await openOrCreate(root)
   return root
 }
 

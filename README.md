@@ -138,7 +138,7 @@ pnpm dev
 
 使用 Claude Code 作为 AI 时，先在终端里运行 `claude` 登录一次。
 
-首次启动时选择一个空文件夹作为 Library，然后导入一个 Anki 卡包、让 AI 生成一套，或者新建卡组手动添加单词、句子和语法。
+首次启动会自动打开 `~/Documents/Fragmemo`，文件夹不存在时会自动创建。你可以在设置里更换 Library 文件夹。
 
 ## 架构
 

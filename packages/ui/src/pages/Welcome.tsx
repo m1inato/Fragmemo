@@ -29,8 +29,8 @@ export function Welcome({ onReady }: { onReady: (s: AppState) => void }) {
         <h1 className="welcome-title">Fragmemo</h1>
         <p className="welcome-lead">把零散的词句，记成长久的记忆。</p>
         <div className="welcome-card">
-          <h2>先选一个 Library 文件夹</h2>
-          <p>卡组、复习记录和设置都以纯文本保存在这个文件夹里，并用 git 记录每一次改动。选一个空文件夹会新建 Library，选已有的 Library 会直接打开。</p>
+          <h2>未能打开 Library</h2>
+          <p>选择一个空文件夹新建 Library，或者选择已有的 Library 文件夹。</p>
           <button className="button button-primary" onClick={choose} disabled={busy}>
             {busy ? '正在打开…' : '选择文件夹'}
           </button>
