@@ -3,7 +3,7 @@ import { LANG_LABELS } from '../lib/format'
 import { useShell } from '../lib/shell'
 import { Icon, Mark } from './Icon'
 
-/** Library navigation: today, then every deck grouped by language with what is left for today. */
+/** Shortcuts to today's review and decks grouped by language. */
 export function Sidebar() {
   const { view, go, langs, openCreateDeck } = useShell()
   const total = (langs ?? []).reduce((n, l) => n + l.due + l.fresh, 0)
@@ -17,7 +17,7 @@ export function Sidebar() {
           Fragmemo
         </button>
       </div>
-      <nav>
+      <nav aria-label="卡组导航">
         <button className={`side-item${view.name === 'home' ? ' on' : ''}`} onClick={() => go({ name: 'home' })}>
           <span>今天</span>
           {total > 0 && <i>{total}</i>}

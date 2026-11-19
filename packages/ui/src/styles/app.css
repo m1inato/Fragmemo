@@ -5,12 +5,19 @@
 }
 
 .app {
+  position: relative;
   display: flex;
   height: 100%;
 }
 .main {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-width: 0;
+}
+.main-view {
+  flex: 1;
+  min-height: 0;
 }
 
 .page {
@@ -34,7 +41,7 @@
   -webkit-app-region: drag;
 }
 
-/* Sidebar: runs the full height; the traffic lights sit in its top-left corner. */
+/* The sidebar runs along the window's left edge beneath the traffic lights. */
 
 .sidebar {
   flex: none;
@@ -65,9 +72,8 @@
   font-size: 21px;
   font-weight: 700;
   letter-spacing: 0.01em;
-  cursor: default;
+  cursor: pointer;
   -webkit-app-region: no-drag;
-  transition: opacity 0.15s;
 }
 .brand:hover {
   opacity: 0.75;
@@ -126,7 +132,7 @@
   color: hsl(var(--faint-foreground));
 }
 
-/* Top bar over the main column. */
+/* Shared window header and review controls. */
 
 .topbar {
   flex: none;
@@ -156,7 +162,11 @@
   flex: 1;
   min-width: 0;
   display: flex;
+  align-items: center;
   justify-content: center;
+}
+.topbar-center:has(.main-nav) {
+  align-self: stretch;
 }
 .topbar-title {
   font-size: 13px;
@@ -164,6 +174,96 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.main-nav {
+  position: relative;
+  display: grid;
+  flex: 1;
+  align-self: stretch;
+  place-items: center;
+  -webkit-app-region: no-drag;
+}
+.nav-trigger {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  padding: 7px 0 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.nav-trigger span {
+  width: 34px;
+  height: 4px;
+  border-radius: 4px;
+  background: hsl(var(--faint-foreground) / 0.3);
+}
+.nav-trigger[aria-expanded='true'] span {
+  opacity: 0;
+}
+.nav-pages {
+  position: relative;
+  box-shadow: var(--shadow);
+  animation: fade 0.12s ease-out;
+}
+.nav-pages[hidden] {
+  display: none;
+}
+.nav-pages button {
+  min-width: 64px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.main-nav button:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: -2px;
+}
+
+@media (max-width: 960px) {
+  .app > .panel {
+    position: absolute;
+    inset: 56px 0 0 auto;
+    z-index: 4;
+    height: auto;
+    box-shadow: var(--shadow-pop);
+  }
+}
+
+.import-page {
+  max-width: 700px;
+}
+.import-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 20px;
+}
+.hero.import-heading h1 {
+  font-size: 28px;
+}
+.import-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  box-shadow: var(--shadow);
+}
+.import-card .editor-grid {
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.import-actions .check {
+  margin-right: auto;
 }
 
 /* Page hero: big title, stats set apart by space alone. */
@@ -206,6 +306,7 @@
 
 .tools {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   margin: 34px 0 14px;

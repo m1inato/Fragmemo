@@ -3,20 +3,22 @@ import { useEffect, useState } from 'react'
 import type { AppState, TaskRecord, Theme } from './api'
 import { Sidebar } from './components/Sidebar'
 import { ToastProvider } from './components/Toast'
+import { MainTopbar } from './components/Topbar'
 import { api } from './lib/api'
 import { ShellContext, type GeneratePreset, type Shell, type View } from './lib/shell'
 import { applyTheme } from './lib/theme'
 import { useAsync } from './lib/useAsync'
 import { DeckView } from './pages/DeckView'
 import { Generate } from './pages/Generate'
-import { Home } from './pages/Home'
-import { CreateDeckDialog, ImportDialog } from './pages/LibraryDialogs'
+import { Home, Library } from './pages/Home'
+import { ImportPage } from './pages/ImportPage'
+import { CreateDeckDialog } from './pages/LibraryDialogs'
 import { RightPanel } from './pages/RightPanel'
 import { Review } from './pages/Review'
 import { SettingsModal } from './pages/SettingsModal'
 import { Welcome } from './pages/Welcome'
 
-type Dialog = { name: 'generate'; preset: GeneratePreset } | { name: 'import' } | { name: 'create'; lang?: Lang } | { name: 'settings' }
+type Dialog = { name: 'generate'; preset: GeneratePreset } | { name: 'create'; lang?: Lang } | { name: 'settings' }
 
 export function App() {
   const [app, setApp] = useState<AppState | null>(null)
@@ -73,7 +75,6 @@ export function App() {
     panel,
     setPanel,
     openGenerate: (preset = {}) => setDialog({ name: 'generate', preset }),
-    openImport: () => setDialog({ name: 'import' }),
     openCreateDeck: (lang) => setDialog({ name: 'create', lang }),
     openSettings: () => setDialog({ name: 'settings' }),
     theme: app.theme,
@@ -91,19 +92,25 @@ export function App() {
           <div className="app">
             {!reviewing && <Sidebar />}
             <div className="main">
-              {view.name === 'review' ? (
-                <Review scope={view.scope} title={view.title} onExit={() => setView({ name: 'home' })} />
-              ) : view.name === 'deck' ? (
-                <DeckView key={view.deckId} deckId={view.deckId} />
-              ) : (
-                <Home />
-              )}
+              {!reviewing && <MainTopbar />}
+              <div className="main-view">
+                {view.name === 'review' && <Review scope={view.scope} title={view.title} onExit={() => setView({ name: 'home' })} />}
+                {view.name === 'home' && <Home />}
+                {view.name === 'library' && <Library />}
+                {view.name === 'deck' && <DeckView key={view.deckId} deckId={view.deckId} />}
+                {view.name === 'import' && (
+                  <ImportPage
+                    key={`${view.preset?.lang ?? ''}:${view.preset?.text ?? ''}`}
+                    preset={view.preset}
+                    onImported={(deckId) => setView((current) => current === view ? { name: 'deck', deckId } : current)}
+                  />
+                )}
+              </div>
             </div>
             {panel && !reviewing && <RightPanel />}
           </div>
         )}
         {dialog?.name === 'generate' && <Generate preset={dialog.preset} onClose={close} onCreated={() => setPanel('tasks')} />}
-        {dialog?.name === 'import' && <ImportDialog onClose={close} onImported={(deckId) => setView({ name: 'deck', deckId })} />}
         {dialog?.name === 'create' && <CreateDeckDialog lang={dialog.lang} onClose={close} onCreated={(deckId) => setView({ name: 'deck', deckId })} />}
         {dialog?.name === 'settings' && <SettingsModal app={app} onApp={setApp} onClose={close} />}
       </ShellContext.Provider>

@@ -11,7 +11,14 @@ export interface GeneratePreset {
   request?: string
 }
 
-export type View = { name: 'home' } | { name: 'deck'; deckId: string } | { name: 'review'; scope: ReviewScope; title: string }
+export type ImportPreset = Pick<GeneratePreset, 'lang' | 'text'>
+
+export type View =
+  | { name: 'home' }
+  | { name: 'library' }
+  | { name: 'import'; preset?: ImportPreset }
+  | { name: 'deck'; deckId: string }
+  | { name: 'review'; scope: ReviewScope; title: string }
 export type Panel = 'qa' | 'tasks'
 
 /** Everything the frame around the pages shares: navigation, the right panel, AI entry points. */
@@ -26,7 +33,6 @@ export interface Shell {
   panel: Panel | null
   setPanel(p: Panel | null): void
   openGenerate(preset?: GeneratePreset): void
-  openImport(): void
   openCreateDeck(lang?: Lang): void
   openSettings(): void
   theme: Theme

@@ -3,7 +3,6 @@ import { answerText, noteTitle, stripHtml, type Note } from '@fragmemo/core'
 import { useMemo, useState } from 'react'
 import { Icon } from '../components/Icon'
 import { useToast } from '../components/Toast'
-import { Topbar } from '../components/Topbar'
 import { api } from '../lib/api'
 import { LANG_LABELS, MODE_LABELS, NOTE_TYPE_LABELS, SOURCE_LABELS, langHue } from '../lib/format'
 import { useShell } from '../lib/shell'
@@ -40,7 +39,6 @@ export function DeckView({ deckId }: { deckId: string }) {
 
   return (
     <div className="page">
-      <Topbar />
       <div className="page-scroll">
         <div className="page-inner">
           {deck && (

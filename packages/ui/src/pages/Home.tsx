@@ -1,29 +1,21 @@
 import type { DeckSummary, Lang } from '@fragmemo/core'
 import { useState } from 'react'
 import { Icon } from '../components/Icon'
-import { Topbar } from '../components/Topbar'
 import { LANG_LABELS, SOURCE_LABELS, langHue } from '../lib/format'
 import { useShell } from '../lib/shell'
 
 type Filter = 'all' | Lang
 
 export function Home() {
-  const { langs, go, openGenerate, openImport, openCreateDeck } = useShell()
-  const [filter, setFilter] = useState<Filter>('all')
-  const [query, setQuery] = useState('')
+  const { langs, go, openGenerate } = useShell()
   const [request, setRequest] = useState('')
 
   const all = langs ?? []
   const sum = (k: 'due' | 'fresh' | 'learned' | 'cards') => all.reduce((n, l) => n + l[k], 0)
-  const decks = all
-    .filter((l) => filter === 'all' || l.lang === filter)
-    .flatMap((l) => l.decks)
-    .filter((d) => !query.trim() || d.name.toLowerCase().includes(query.trim().toLowerCase()))
   const left = sum('due') + sum('fresh')
 
   return (
     <div className="page">
-      <Topbar />
       <div className="page-scroll">
         <div className="page-inner">
           <section className="hero">
@@ -68,44 +60,71 @@ export function Home() {
               </label>
               <button className="button button-primary" disabled={!request.trim()} onClick={() => openGenerate({ request: request.trim() })}>AI 制卡</button>
               <span className="faint maker-or">或</span>
-              <button className="button" onClick={openImport}>
+              <button className="button" onClick={() => go({ name: 'import' })}>
                 <Icon name="file" />
-                导入 Anki 卡包
+                导入词组
               </button>
             </div>
             <p className="maker-hint faint">
               AI 按你的学习档案做卡，每条都先经代码检查，可以整批撤销。也可以
-              <button className="link" onClick={() => openGenerate({ tab: 'extract-from-text' })}>从文本提取</button>、
               <button className="link" onClick={() => openGenerate({ tab: 'process-inbox' })}>整理收藏</button>或
               <button className="link" onClick={() => openGenerate({ tab: 'leech-helper' })}>攻克难记卡</button>。
             </p>
           </section>
-
-          <div className="tools">
-            <div className="segmented">
-              {(['all', 'ja', 'en'] as Filter[]).map((f) => (
-                <button key={f} className={filter === f ? 'active' : ''} onClick={() => setFilter(f)}>
-                  {f === 'all' ? '全部' : LANG_LABELS[f]}
-                </button>
-              ))}
-            </div>
-            <span className="spacer" />
-            <input className="tools-search" type="search" placeholder="搜索卡组…" value={query} onChange={(e) => setQuery(e.target.value)} />
-            <button className="button" onClick={() => openCreateDeck(filter === 'all' ? undefined : filter)}>
-              <Icon name="plus" />
-              新建卡组
-            </button>
-          </div>
-
-          {langs && !decks.length && (
-            <p className="empty faint">{all.length ? '没有匹配的卡组。' : '还没有卡组：让 AI 做一套、导入 Anki 卡包，或者新建一个。'}</p>
-          )}
-          <div className="deck-grid">
-            {decks.map((d) => <DeckCard key={d.id} deck={d} />)}
-          </div>
+          <DeckList />
         </div>
       </div>
     </div>
+  )
+}
+
+export function Library() {
+  return (
+    <div className="page">
+      <div className="page-scroll">
+        <div className="page-inner">
+          <section className="hero">
+            <h1>卡组</h1>
+          </section>
+          <DeckList />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DeckList() {
+  const { langs, openCreateDeck } = useShell()
+  const [filter, setFilter] = useState<Filter>('all')
+  const [query, setQuery] = useState('')
+  const all = (langs ?? []).flatMap((l) => l.decks)
+  const search = query.trim().toLowerCase()
+  const decks = all.filter((d) => (filter === 'all' || d.lang === filter) && d.name.toLowerCase().includes(search))
+
+  return (
+    <>
+      <div className="tools">
+        <div className="segmented">
+          {(['all', 'ja', 'en'] as Filter[]).map((f) => (
+            <button key={f} className={filter === f ? 'active' : ''} onClick={() => setFilter(f)}>
+              {f === 'all' ? '全部' : LANG_LABELS[f]}
+            </button>
+          ))}
+        </div>
+        <span className="spacer" />
+        <input className="tools-search" type="search" placeholder="搜索卡组…" value={query} onChange={(e) => setQuery(e.target.value)} />
+        <button className="button" onClick={() => openCreateDeck(filter === 'all' ? undefined : filter)}>
+          <Icon name="plus" />
+          新建卡组
+        </button>
+      </div>
+      {langs && !decks.length && (
+        <p className="empty faint">{all.length ? '没有匹配的卡组。' : '还没有卡组。可以导入词组，或新建一个卡组。'}</p>
+      )}
+      <div className="deck-grid">
+        {decks.map((d) => <DeckCard key={d.id} deck={d} />)}
+      </div>
+    </>
   )
 }
 
