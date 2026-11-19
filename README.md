@@ -114,11 +114,16 @@ Library/
 
 ## 开始使用
 
-### 下载
+### 打包安装
 
-在 [Releases](https://github.com/m1inato/Fragmemo/releases) 下载对应芯片的 `.dmg`（Apple 芯片选 `arm64`，Intel 选 `x64`），拖进“应用程序”。
+在 Mac 上从源码打出安装包（同时生成 Apple 芯片的 `arm64` 和 Intel 的 `x64` 两个 `.dmg`，在 `apps/desktop/release/`）：
 
-应用目前没有经过 Apple 公证，第一次打开前在终端里执行一次：
+```bash
+pnpm install
+pnpm --filter @fragmemo/desktop dist
+```
+
+安装包没有经过 Apple 公证，第一次打开前在终端里执行一次：
 
 ```bash
 xattr -cr /Applications/Fragmemo.app
