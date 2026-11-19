@@ -1,8 +1,8 @@
-import { useId, useRef, useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import type { Theme } from '../api'
 import { useShell } from '../lib/shell'
 import { THEME_LABELS } from '../lib/theme'
-import { Icon, type IconName } from './Icon'
+import { Icon, Mark, type IconName } from './Icon'
 
 const THEMES: { id: Theme; icon: IconName }[] = [
   { id: 'system', icon: 'monitor' },
@@ -17,62 +17,29 @@ const PAGES = [
   { name: 'import', label: '导入词组' }
 ] as const
 
-export function MainTopbar() {
+export function MainTopbar({ mac }: { mac: boolean }) {
   const { view, go } = useShell()
   const active = view.name === 'deck' ? 'library' : view.name
-  const [open, setOpen] = useState(false)
-  const menuId = useId()
-  const trigger = useRef<HTMLButtonElement>(null)
-
-  function close(restoreFocus = false) {
-    if (restoreFocus) trigger.current?.focus()
-    setOpen(false)
-  }
 
   return (
-    <Topbar
-      center={
-        <nav
-          className="main-nav"
-          aria-label="页面导航"
-          onPointerEnter={(e) => { if (e.pointerType === 'mouse') setOpen(true) }}
-          onPointerLeave={(e) => { if (!e.currentTarget.querySelector(':focus-visible')) close() }}
-          onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) close() }}
-          onKeyDown={(e) => {
-            if (open && e.key === 'Escape') {
-              e.stopPropagation()
-              close(true)
-            }
-          }}
-        >
+    <header className={`topbar main-topbar${mac ? ' main-topbar-mac' : ''}`}>
+      <button className="brand" onClick={() => go({ name: 'home' })}>
+        <Mark size={24} />
+        Fragmemo
+      </button>
+      <nav className="main-nav" aria-label="页面导航">
+        {PAGES.map(({ name, label }) => (
           <button
-            ref={trigger}
-            className="nav-trigger"
-            aria-label="切换页面"
-            aria-expanded={open}
-            aria-controls={menuId}
-            onClick={() => setOpen(true)}
+            key={name}
+            aria-current={active === name ? 'page' : undefined}
+            onClick={() => view.name !== name && go({ name })}
           >
-            <span />
+            {label}
           </button>
-          <div id={menuId} className="segmented nav-pages" hidden={!open}>
-            {PAGES.map(({ name, label }) => (
-              <button
-                key={name}
-                className={active === name ? 'active' : ''}
-                aria-current={active === name ? 'page' : undefined}
-                onClick={(e) => {
-                  if (view.name !== name) go({ name })
-                  close(e.detail === 0)
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </nav>
-      }
-    />
+        ))}
+      </nav>
+      <div className="topbar-side topbar-actions"><TopActions /></div>
+    </header>
   )
 }
 

@@ -38,7 +38,7 @@ function createWindow() {
     show: false,
     title: 'Fragmemo',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
-    trafficLightPosition: { x: 16, y: 18 },
+    trafficLightPosition: { x: 16, y: 21 },
     backgroundColor: background(theme),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),

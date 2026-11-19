@@ -1,7 +1,7 @@
 import type { Lang } from '@fragmemo/core'
 import { LANG_LABELS } from '../lib/format'
 import { useShell } from '../lib/shell'
-import { Icon, Mark } from './Icon'
+import { Icon } from './Icon'
 
 /** Shortcuts to today's review and decks grouped by language. */
 export function Sidebar() {
@@ -11,12 +11,6 @@ export function Sidebar() {
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-brand">
-        <button className="brand" onClick={() => go({ name: 'home' })}>
-          <Mark size={30} />
-          Fragmemo
-        </button>
-      </div>
       <nav aria-label="卡组导航">
         <button className={`side-item${view.name === 'home' ? ' on' : ''}`} onClick={() => go({ name: 'home' })}>
           <span>今天</span>

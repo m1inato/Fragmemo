@@ -90,10 +90,10 @@ export function App() {
           <Welcome onReady={setApp} />
         ) : (
           <div className="app">
-            {!reviewing && <Sidebar />}
-            <div className="main">
-              {!reviewing && <MainTopbar />}
-              <div className="main-view">
+            {!reviewing && <MainTopbar mac={app.platform === 'darwin'} />}
+            <div className="app-content">
+              {!reviewing && <Sidebar />}
+              <div className="main">
                 {view.name === 'review' && <Review scope={view.scope} title={view.title} onExit={() => setView({ name: 'home' })} />}
                 {view.name === 'home' && <Home />}
                 {view.name === 'library' && <Library />}
@@ -106,8 +106,8 @@ export function App() {
                   />
                 )}
               </div>
+              {panel && !reviewing && <RightPanel />}
             </div>
-            {panel && !reviewing && <RightPanel />}
           </div>
         )}
         {dialog?.name === 'generate' && <Generate preset={dialog.preset} onClose={close} onCreated={() => setPanel('tasks')} />}
