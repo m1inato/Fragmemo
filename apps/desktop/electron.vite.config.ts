@@ -1,5 +1,6 @@
 import react from '@vitejs/plugin-react'
-import { defineConfig, type Plugin } from 'electron-vite'
+import { defineConfig } from 'electron-vite'
+import type { Plugin } from 'vite'
 import { readdirSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join, resolve } from 'node:path'
