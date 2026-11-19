@@ -114,33 +114,29 @@ Library/
 
 ## 开始使用
 
-### 打包安装
-
-在 Mac 上从源码打出安装包（同时生成 Apple 芯片的 `arm64` 和 Intel 的 `x64` 两个 `.dmg`，在 `apps/desktop/release/`）：
-
-```bash
-pnpm install
-pnpm --filter @fragmemo/desktop dist
-```
-
-安装包没有经过 Apple 公证，第一次打开前在终端里执行一次：
-
-```bash
-xattr -cr /Applications/Fragmemo.app
-```
-
-需要 git（macOS 自带的命令行工具即可）。使用 Claude Code 作为 AI 时，先在终端里运行 `claude` 登录一次。
-
-### 从源码运行
-
-**环境要求**：macOS、Node.js 22+、pnpm、git
+需要 macOS、Node.js 22.12+、pnpm 和 git。
 
 ```bash
 git clone https://github.com/m1inato/Fragmemo.git
 cd Fragmemo
 pnpm install
+```
+
+### 打包应用
+
+```bash
+pnpm --filter @fragmemo/desktop dist
+```
+
+打包会生成适合当前 Mac 的 `Fragmemo.app`。Apple 芯片版在 `apps/desktop/dist/mac-arm64/Fragmemo.app`，Intel 版在 `apps/desktop/dist/mac/Fragmemo.app`。可以双击打开，也可以把它拖到「应用程序」。
+
+### 从源码运行
+
+```bash
 pnpm dev
 ```
+
+使用 Claude Code 作为 AI 时，先在终端里运行 `claude` 登录一次。
 
 首次启动时选择一个空文件夹作为 Library，然后导入一个 Anki 卡包、让 AI 生成一套，或者新建卡组手动添加单词、句子和语法。
 
@@ -195,7 +191,7 @@ flowchart LR
 pnpm test        # 单元测试
 pnpm typecheck   # 类型检查
 pnpm build       # 构建桌面端
-pnpm --filter @fragmemo/desktop dist   # 在 macOS 上打包 .dmg
+pnpm --filter @fragmemo/desktop dist   # 在 macOS 上打包 .app
 FRAGMEMO_USER_DATA=/tmp/fragmemo-dev pnpm dev   # 使用独立的配置目录，不影响日常使用的 Library
 ```
 
