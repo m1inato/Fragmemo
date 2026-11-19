@@ -1,5 +1,6 @@
 import type { Lang } from '@fragmemo/core'
 import { useEffect, useRef, useState } from 'react'
+import { Icon } from '../components/Icon'
 import { errorText } from '../components/Toast'
 import { api } from '../lib/api'
 import { LANG_LABELS } from '../lib/format'
@@ -11,8 +12,8 @@ let seq = 0
 const newConversation = () => `qa-${Date.now().toString(36)}-${++seq}`
 
 /** Q&A with the tutor. Read-only: turning an answer into cards goes through a normal task. */
-export function SidePanel() {
-  const { setPanel, openGenerate } = useShell()
+export function QaPanel() {
+  const { openGenerate } = useShell()
   const [lang, setLang] = useState<Lang>('ja')
   const [conversation, setConversation] = useState(newConversation)
   const [turns, setTurns] = useState<Turn[]>([])
@@ -61,9 +62,8 @@ export function SidePanel() {
   }
 
   return (
-    <aside className="panel" aria-label="问答">
-      <header className="panel-header">
-        <h2>问答</h2>
+    <>
+      <div className="qa-bar">
         <div className="segmented segmented-small">
           {(['ja', 'en'] as Lang[]).map((l) => (
             <button key={l} className={l === lang ? 'active' : ''} onClick={() => l !== lang && reset(l)}>{LANG_LABELS[l]}</button>
@@ -71,8 +71,7 @@ export function SidePanel() {
         </div>
         <span className="spacer" />
         {turns.length > 0 && <button className="button button-small button-ghost" onClick={() => reset()}>新对话</button>}
-        <button className="icon-button" onClick={() => setPanel(null)} aria-label="关闭">✕</button>
-      </header>
+      </div>
 
       <div className="panel-body qa-body" lang={lang}>
         {!turns.length && (
@@ -106,12 +105,16 @@ export function SidePanel() {
           }}
         />
         {busy ? (
-          <button type="button" className="button" onClick={() => api.stopAsking(conversation)}>停止</button>
+          <button type="button" className="icon-button bordered" title="停止" onClick={() => api.stopAsking(conversation)}>
+            <Icon name="stop" />
+          </button>
         ) : (
-          <button type="submit" className="button button-primary" disabled={!draft.trim()}>发送</button>
+          <button type="submit" className="icon-button send" title="发送" disabled={!draft.trim()}>
+            <Icon name="send" />
+          </button>
         )}
       </form>
-    </aside>
+    </>
   )
 }
 

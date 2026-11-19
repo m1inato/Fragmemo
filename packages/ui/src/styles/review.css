@@ -1,9 +1,5 @@
 .review-left {
-  font-size: 12px;
-  font-weight: 500;
-  color: hsl(var(--muted-foreground));
   font-variant-numeric: tabular-nums;
-  margin-right: 6px;
 }
 
 .review-main {
@@ -28,22 +24,6 @@
   align-items: center;
   gap: 8px;
 }
-.pin {
-  height: 24px;
-  padding: 0 9px;
-  border-radius: var(--radius);
-  border: 1px dashed hsl(var(--border));
-  background: transparent;
-  color: hsl(var(--faint-foreground));
-  font: 500 12px var(--font-ui);
-  cursor: pointer;
-}
-.pin-on {
-  border-style: solid;
-  border-color: hsl(var(--primary) / 0.4);
-  color: hsl(var(--primary));
-}
-
 .review-card {
   flex: 1;
   display: flex;

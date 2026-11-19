@@ -1,87 +1,47 @@
-.deck-main {
-  flex: 1;
-  overflow: auto;
-  padding: 12px 40px 48px;
-}
-.deck-main > * {
-  max-width: 960px;
-  margin-left: auto;
-  margin-right: auto;
-}
+/* A deck: its notes as a list, and the note editor. */
 
-.deck-head {
+.note-list {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 20px 0 18px;
-}
-.deck-head h1 {
-  margin-top: 6px;
-  font-size: 26px;
-}
-.deck-stats {
-  margin-top: 6px;
-  color: hsl(var(--muted-foreground));
-  font-variant-numeric: tabular-nums;
-}
-.search {
-  max-width: 240px;
-}
-.deck-empty {
-  padding: 48px 0;
-  text-align: center;
-}
-
-.notes {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  border: 1px solid hsl(var(--border));
-  border-radius: var(--radius);
-  background: hsl(var(--card));
+  flex-direction: column;
   overflow: hidden;
+}
+.note-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  cursor: default;
+  transition: background 0.12s;
+}
+.note-row + .note-row {
+  border-top: 1px solid hsl(var(--border));
+}
+.note-row:hover {
+  background: hsl(var(--accent));
+}
+.note-main {
+  flex: 1;
+  min-width: 0;
+}
+.note-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+.note-detail {
+  margin-top: 2px;
   font-size: 13px;
-}
-.notes th {
-  padding: 9px 14px;
-  text-align: left;
-  font-weight: 500;
-  font-size: 12px;
-  color: hsl(var(--faint-foreground));
-  border-bottom: 1px solid hsl(var(--border));
-}
-.notes td {
-  padding: 9px 14px;
-  border-bottom: 1px solid hsl(var(--border) / 0.6);
-  vertical-align: top;
-}
-.notes tr:last-child td {
-  border-bottom: 0;
-}
-.notes tbody tr {
-  cursor: pointer;
-}
-.notes tbody tr:hover td {
-  background: hsl(var(--muted) / 0.6);
-}
-.notes-title {
-  font-weight: 500;
-  max-width: 220px;
-}
-.notes-detail {
-  color: hsl(var(--muted-foreground));
-  max-width: 360px;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
+  text-overflow: ellipsis;
 }
-.notes-tags {
-  color: hsl(var(--faint-foreground));
-  font-size: 12px;
+.note-tags {
+  flex: none;
+  display: flex;
+  gap: 6px;
 }
-
-/* Note editor */
+.note-tags .chip + .chip {
+  margin-left: 0;
+}
 
 .editor-kind {
   align-self: flex-start;

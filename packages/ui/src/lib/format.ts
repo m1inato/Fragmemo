@@ -22,3 +22,7 @@ export const RATING_LABELS: Record<Rating, string> = { 1: '忘记', 2: '困难',
 export const MODE_LABELS: Record<AnswerMode, string> = { flip: '翻卡', choice: '选择', listen: '听音', spell: '拼写' }
 export const LANG_LABELS: Record<Lang, string> = { ja: '日语', en: '英语' }
 export const NOTE_TYPE_LABELS = { word: '单词', sentence: '句子', grammar: '语法', raw: 'Anki' } as const
+export const SOURCE_LABELS = { ai: 'AI 生成', repo: '卡包仓库', apkg: 'Anki', manual: '手动' } as const
+
+/** Hue for a language's tag: red for Japanese, blue for English. */
+export const langHue = (lang: Lang) => (lang === 'ja' ? 355 : 215)

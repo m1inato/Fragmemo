@@ -1,110 +1,126 @@
-.home-main {
-  flex: 1;
-  overflow: auto;
-  padding: 12px 40px 48px;
-}
-.home-main > * {
-  max-width: 960px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.lang-section + .lang-section {
-  margin-top: 40px;
-}
+/* 今天: per-language review rows, the AI / import card, the deck grid. */
 
 .today {
+  margin-top: 26px;
+  padding: 6px 16px;
+  box-shadow: var(--shadow);
+}
+.today-row {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 20px 0 22px;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
 }
-.today-title {
-  margin-top: 6px;
-  font-size: 28px;
+.today-row + .today-row {
+  border-top: 1px solid hsl(var(--border));
 }
-.today-sub {
-  margin-top: 6px;
-  color: hsl(var(--muted-foreground));
+.today-count {
+  flex: 1;
+  font-size: 14px;
+}
+.today-count b {
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+.maker {
+  margin-top: 16px;
+  padding: 14px;
+  box-shadow: var(--shadow);
+}
+.maker-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.maker-input {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 2px);
+  background: hsl(var(--background));
+  color: hsl(var(--faint-foreground));
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.maker-input:focus-within {
+  border-color: hsl(var(--foreground) / 0.35);
+  box-shadow: 0 0 0 3px hsl(var(--foreground) / 0.06);
+}
+.maker-input input {
+  color: hsl(var(--foreground));
+}
+.maker .button {
+  height: 36px;
+}
+.maker-or {
+  font-size: 12px;
+}
+.maker-hint {
+  margin: 10px 2px 0;
+  font-size: 12px;
+}
+.maker-hint .link {
+  margin: 0 2px;
+  font-size: 12px;
 }
 
 .deck-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
 }
-.deck-card {
+.deck {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 16px;
-  border-radius: var(--radius);
-  border: 1px solid hsl(var(--border));
-  background: hsl(var(--card));
+  padding: 18px 18px 16px;
+  cursor: default;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.deck:hover {
+  border-color: hsl(var(--foreground) / 0.2);
   box-shadow: var(--shadow);
-  cursor: pointer;
-  transition: border-color 0.12s, transform 0.12s;
 }
-.deck-card:hover {
-  border-color: hsl(var(--primary) / 0.4);
-}
-.deck-card h3 {
-  font-size: 15px;
+.deck h3 {
+  font-size: 16px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.deck-card-meta {
-  font-size: 12px;
-  color: hsl(var(--faint-foreground));
+.deck-meta {
+  font-size: 12.5px;
 }
-.deck-card-foot {
+.deck-foot {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 6px;
+  margin-top: 14px;
 }
-.deck-progress {
+.deck-foot .chip + .chip {
+  margin-left: 0;
+}
+.progress {
   flex: 1;
+  max-width: 96px;
   height: 4px;
-  border-radius: 999px;
+  margin: 0 8px 0 auto;
+  border-radius: 99px;
   background: hsl(var(--muted));
   overflow: hidden;
 }
-.deck-progress span {
+.progress span {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: hsl(var(--primary) / 0.7);
+  background: hsl(var(--primary));
 }
-.deck-due {
+.deck-left {
+  min-width: 44px;
   font-size: 12px;
-  font-weight: 500;
-  color: hsl(var(--primary));
+  text-align: right;
   font-variant-numeric: tabular-nums;
-}
-.deck-due-done {
-  color: hsl(var(--faint-foreground));
-}
-
-.empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 120px 0;
-  text-align: center;
-}
-.empty h1 {
-  font-size: 22px;
-}
-.empty p {
-  color: hsl(var(--muted-foreground));
-}
-.empty-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
 }

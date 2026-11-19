@@ -24,7 +24,7 @@ export function Generate({ preset, onClose, onCreated }: { preset: GeneratePrese
   const [lang, setLang] = useState<Lang>(preset.lang ?? 'ja')
   const [deckId, setDeckId] = useState<string>(preset.deckId ?? '')
   const [deckName, setDeckName] = useState('')
-  const [request, setRequest] = useState('')
+  const [request, setRequest] = useState(preset.request ?? '')
   const [count, setCount] = useState(20)
   const [text, setText] = useState(preset.text ?? '')
 

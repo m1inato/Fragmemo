@@ -2,10 +2,11 @@ import { judgeSpelling, type AnswerMode, type Rating, type ReviewItem, type Revi
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { CardFrame } from '../components/CardFrame'
 import { AnswerView, Prompt } from '../components/NoteView'
-import { TitleBar } from '../components/TitleBar'
+import { Icon } from '../components/Icon'
+import { ThemeButton, Topbar } from '../components/Topbar'
 import { errorText, useToast } from '../components/Toast'
 import { api } from '../lib/api'
-import { formatInterval, MODE_LABELS, RATING_LABELS } from '../lib/format'
+import { formatInterval, langHue, MODE_LABELS, RATING_LABELS } from '../lib/format'
 import { speak, stop } from '../lib/speech'
 
 /**
@@ -138,13 +139,22 @@ export function Review({ scope, title, onExit }: { scope: ReviewScope; title: st
   })
 
   const header = (
-    <TitleBar
-      left={<button className="button button-ghost" onClick={exit}>← 结束</button>}
-      center={<span className="titlebar-title">{title}</span>}
+    <Topbar
+      inset
+      left={
+        <button className="button button-ghost" onClick={exit} title="结束 (Esc)">
+          <Icon name="back" />
+          结束
+        </button>
+      }
+      center={<span className="topbar-title">{title}</span>}
       right={
         <>
-          <span className="review-left" title="待复习 · 新卡">{left.due} · {left.fresh} 新</span>
-          <button className="icon-button" onClick={undo} title="撤销 (⌘Z)" aria-label="撤销">↶</button>
+          <span className="chip review-left" title="待复习 · 新卡">待复习 {left.due} · 新 {left.fresh}</span>
+          <button className="icon-button bordered" onClick={undo} title="撤销 (⌘Z)">
+            <Icon name="undo" />
+          </button>
+          <ThemeButton />
         </>
       }
     />
@@ -173,9 +183,9 @@ export function Review({ scope, title, onExit }: { scope: ReviewScope; title: st
       {header}
       <main className="review-main" lang={item.lang}>
         <div className="review-meta">
-          <span className="chip">{item.deckName}</span>
-          {item.faceLabel && <span className="chip chip-quiet">{item.faceLabel}</span>}
-          {item.isNew && <span className="chip chip-new">新</span>}
+          <span className="chip tint" style={{ '--h': langHue(item.lang) } as React.CSSProperties}>{item.deckName}</span>
+          {item.faceLabel && <span className="chip">{item.faceLabel}</span>}
+          {item.isNew && <span className="chip new">新卡</span>}
           <div className="review-modes">
             {item.modes.length > 1 && (
               <div className="segmented segmented-small">
@@ -185,8 +195,8 @@ export function Review({ scope, title, onExit }: { scope: ReviewScope; title: st
               </div>
             )}
             {item.modes.length > 1 && (
-              <button className={`pin${note.mode === item.mode ? ' pin-on' : ''}`} onClick={togglePin} title="固定这张卡的作答模式">
-                {note.mode === item.mode ? '已固定' : '固定'}
+              <button className={`icon-button bordered${note.mode === item.mode ? ' active' : ''}`} onClick={togglePin} title={note.mode === item.mode ? '已固定作答模式，点击取消' : '固定这张卡的作答模式'}>
+                <Icon name="pin" />
               </button>
             )}
           </div>
@@ -205,7 +215,7 @@ export function Review({ scope, title, onExit }: { scope: ReviewScope; title: st
                 )}
                 {(item.mode === 'listen' || item.speech) && (
                   <button className={`speaker${item.mode === 'listen' && !revealed ? ' speaker-large' : ''}`} onClick={() => play(item)} title="播放 (R)" aria-label="播放">
-                    ♪
+                    <Icon name="volume" size={item.mode === 'listen' && !revealed ? 30 : 16} />
                   </button>
                 )}
               </div>

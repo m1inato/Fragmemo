@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { AppState } from '../api'
-import { TitleBar } from '../components/TitleBar'
+import { Mark } from '../components/Icon'
 import { errorText } from '../components/Toast'
 import { api } from '../lib/api'
 
@@ -23,13 +23,9 @@ export function Welcome({ onReady }: { onReady: (s: AppState) => void }) {
 
   return (
     <div className="page welcome">
-      <TitleBar />
+      <div className="drag-strip" />
       <main className="welcome-main">
-        <div className="welcome-mark" aria-hidden>
-          <span />
-          <span />
-          <span />
-        </div>
+        <Mark size={64} />
         <h1 className="welcome-title">Fragmemo</h1>
         <p className="welcome-lead">把零散的词句，记成长久的记忆。</p>
         <div className="welcome-card">

@@ -1,177 +1,139 @@
-import type { Lang, LangSummary, ReviewScope } from '@fragmemo/core'
+import type { DeckSummary, Lang } from '@fragmemo/core'
 import { useState } from 'react'
-import { Modal } from '../components/Modal'
-import { ShellButtons } from '../components/ShellButtons'
-import { TitleBar } from '../components/TitleBar'
-import { useToast } from '../components/Toast'
-import { api } from '../lib/api'
-import { LANG_LABELS } from '../lib/format'
-import { useAsync } from '../lib/useAsync'
+import { Icon } from '../components/Icon'
+import { Topbar } from '../components/Topbar'
+import { LANG_LABELS, SOURCE_LABELS, langHue } from '../lib/format'
+import { useShell } from '../lib/shell'
 
-export function Home({ version, onOpenDeck, onReview, onSettings }: {
-  version: number
-  onOpenDeck: (deckId: string) => void
-  onReview: (scope: ReviewScope, title: string) => void
-  onSettings: () => void
-}) {
-  const { data: langs } = useAsync(() => api.overview(), [version])
-  const [dialog, setDialog] = useState<'import' | 'create' | null>(null)
+type Filter = 'all' | Lang
+
+export function Home() {
+  const { langs, go, openGenerate, openImport, openCreateDeck } = useShell()
+  const [filter, setFilter] = useState<Filter>('all')
+  const [query, setQuery] = useState('')
+  const [request, setRequest] = useState('')
+
+  const all = langs ?? []
+  const sum = (k: 'due' | 'fresh' | 'learned' | 'cards') => all.reduce((n, l) => n + l[k], 0)
+  const decks = all
+    .filter((l) => filter === 'all' || l.lang === filter)
+    .flatMap((l) => l.decks)
+    .filter((d) => !query.trim() || d.name.toLowerCase().includes(query.trim().toLowerCase()))
+  const left = sum('due') + sum('fresh')
 
   return (
-    <div className="page home">
-      <TitleBar
-        center={<span className="titlebar-title">Fragmemo</span>}
-        right={
-          <>
-            <button className="button button-ghost" onClick={() => setDialog('create')}>新建卡组</button>
-            <button className="button button-ghost" onClick={() => setDialog('import')}>导入 Anki 卡包</button>
-            <ShellButtons />
-            <button className="icon-button" onClick={onSettings} aria-label="设置" title="设置 (⌘,)">⚙</button>
-          </>
-        }
-      />
-      <main className="home-main">
-        {langs && !langs.length && <EmptyLibrary onImport={() => setDialog('import')} onCreate={() => setDialog('create')} />}
-        {langs?.map((l) => <LangSection key={l.lang} summary={l} onOpenDeck={onOpenDeck} onReview={onReview} />)}
-      </main>
-      {dialog === 'import' && <ImportDialog onClose={() => setDialog(null)} onImported={onOpenDeck} />}
-      {dialog === 'create' && <CreateDeckDialog onClose={() => setDialog(null)} onCreated={onOpenDeck} />}
-    </div>
-  )
-}
+    <div className="page">
+      <Topbar />
+      <div className="page-scroll">
+        <div className="page-inner">
+          <section className="hero">
+            <h1>{!langs ? '' : !all.length ? '开始吧' : left ? '今天' : '今天的复习完成了'}</h1>
+            {all.length > 0 && (
+              <p className="stats">
+                <span>待复习 <b>{sum('due')}</b> 张</span>
+                <span>新卡 <b>{sum('fresh')}</b> 张</span>
+                <span>已学 <b>{sum('learned')}</b> / {sum('cards')}</span>
+              </p>
+            )}
+          </section>
 
-function LangSection({ summary, onOpenDeck, onReview }: {
-  summary: LangSummary
-  onOpenDeck: (deckId: string) => void
-  onReview: (scope: ReviewScope, title: string) => void
-}) {
-  const { lang, decks, due, fresh, learned, cards } = summary
-  return (
-    <section className="lang-section">
-      <div className="today">
-        <div>
-          <p className="eyebrow">{LANG_LABELS[lang]}</p>
-          <h1 className="today-title">{due + fresh ? `今天还有 ${due + fresh} 张` : '今天的已经复习完了'}</h1>
-          <p className="today-sub">
-            待复习 {due} · 新卡 {fresh} · 已学 {learned} / {cards}
-          </p>
-        </div>
-        <button className="button button-primary button-large" disabled={!due && !fresh} onClick={() => onReview({ lang }, LANG_LABELS[lang])}>
-          开始复习
-        </button>
-      </div>
-      <div className="deck-grid">
-        {decks.map((d) => (
-          <article key={d.id} className="deck-card" onClick={() => onOpenDeck(d.id)}>
-            <h3>{d.name}</h3>
-            <p className="deck-card-meta">{d.notes} 条笔记 · {d.cards} 张卡</p>
-            <div className="deck-card-foot">
-              <span className="deck-progress" aria-label={`已学 ${d.learned} / ${d.cards}`}>
-                <span style={{ width: `${d.cards ? (d.learned / d.cards) * 100 : 0}%` }} />
-              </span>
-              <span className={`deck-due${d.due + d.fresh ? '' : ' deck-due-done'}`}>
-                {d.due + d.fresh ? `${d.due} · ${d.fresh} 新` : '已完成'}
-              </span>
-              <button
-                className="button button-small"
-                disabled={!d.due && !d.fresh}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onReview({ lang, deckIds: [d.id] }, d.name)
-                }}
-              >
-                复习
+          {all.some((l) => l.decks.length) && (
+            <section className="card today">
+              {all.map((l) => (
+                <div key={l.lang} className="today-row">
+                  <span className="chip tint" style={{ '--h': langHue(l.lang) } as React.CSSProperties}>{LANG_LABELS[l.lang]}</span>
+                  <span className="today-count">
+                    {l.due + l.fresh ? <>还有 <b>{l.due + l.fresh}</b> 张 <span className="faint">· 待复习 {l.due} · 新卡 {l.fresh}</span></> : <span className="faint">今天的已经完成</span>}
+                  </span>
+                  <button className="button button-primary" disabled={!l.due && !l.fresh} onClick={() => go({ name: 'review', scope: { lang: l.lang }, title: LANG_LABELS[l.lang] })}>
+                    <Icon name="play" size={14} />
+                    开始复习
+                  </button>
+                </div>
+              ))}
+            </section>
+          )}
+
+          <section className="card maker">
+            <div className="maker-row">
+              <label className="maker-input">
+                <Icon name="sparkles" />
+                <input
+                  className="bare"
+                  value={request}
+                  onChange={(e) => setRequest(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && request.trim() && openGenerate({ request: request.trim() })}
+                  placeholder="想学什么？例如：N3 里描述情绪的形容词"
+                />
+              </label>
+              <button className="button button-primary" disabled={!request.trim()} onClick={() => openGenerate({ request: request.trim() })}>AI 制卡</button>
+              <span className="faint maker-or">或</span>
+              <button className="button" onClick={openImport}>
+                <Icon name="file" />
+                导入 Anki 卡包
               </button>
             </div>
-          </article>
-        ))}
-      </div>
-    </section>
-  )
-}
+            <p className="maker-hint faint">
+              AI 按你的学习档案做卡，每条都先经代码检查，可以整批撤销。也可以
+              <button className="link" onClick={() => openGenerate({ tab: 'extract-from-text' })}>从文本提取</button>、
+              <button className="link" onClick={() => openGenerate({ tab: 'process-inbox' })}>整理收藏</button>或
+              <button className="link" onClick={() => openGenerate({ tab: 'leech-helper' })}>攻克难记卡</button>。
+            </p>
+          </section>
 
-function EmptyLibrary({ onImport, onCreate }: { onImport: () => void; onCreate: () => void }) {
-  return (
-    <div className="empty">
-      <h1>Library 还是空的</h1>
-      <p>导入一个 Anki 卡包，或者新建一个卡组开始。</p>
-      <div className="empty-actions">
-        <button className="button button-primary" onClick={onImport}>导入 Anki 卡包</button>
-        <button className="button" onClick={onCreate}>新建卡组</button>
+          <div className="tools">
+            <div className="segmented">
+              {(['all', 'ja', 'en'] as Filter[]).map((f) => (
+                <button key={f} className={filter === f ? 'active' : ''} onClick={() => setFilter(f)}>
+                  {f === 'all' ? '全部' : LANG_LABELS[f]}
+                </button>
+              ))}
+            </div>
+            <span className="spacer" />
+            <input className="tools-search" type="search" placeholder="搜索卡组…" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <button className="button" onClick={() => openCreateDeck(filter === 'all' ? undefined : filter)}>
+              <Icon name="plus" />
+              新建卡组
+            </button>
+          </div>
+
+          {langs && !decks.length && (
+            <p className="empty faint">{all.length ? '没有匹配的卡组。' : '还没有卡组：让 AI 做一套、导入 Anki 卡包，或者新建一个。'}</p>
+          )}
+          <div className="deck-grid">
+            {decks.map((d) => <DeckCard key={d.id} deck={d} />)}
+          </div>
+        </div>
       </div>
     </div>
   )
 }
 
-function ImportDialog({ onClose, onImported }: { onClose: () => void; onImported: (deckId: string) => void }) {
-  const toast = useToast()
-  const [withHistory, setWithHistory] = useState(true)
-  async function run() {
-    const res = await toast
-      .track(api.importApkg({ withHistory }), {
-        pending: '正在导入…',
-        done: (r) => (r ? `导入完成：新增 ${r.added} 条，更新 ${r.updated} 条` : null)
-      })
-      .catch(() => null)
-    if (res) {
-      onClose()
-      onImported(res.deck.id)
-    }
-  }
+function DeckCard({ deck: d }: { deck: DeckSummary }) {
+  const { go } = useShell()
+  const left = d.due + d.fresh
   return (
-    <Modal
-      title="导入 Anki 卡包"
-      onClose={onClose}
-      footer={
-        <>
-          <button className="button" onClick={onClose}>取消</button>
-          <button className="button button-primary" onClick={run}>选择 .apkg 文件</button>
-        </>
-      }
-    >
-      <p className="modal-text">支持新旧两种 .apkg / .colpkg 格式。卡片按原模板显示，图片和音频一并导入；同一个卡包再导入一次会更新原卡组，不会重复。</p>
-      <label className="check">
-        <input type="checkbox" checked={withHistory} onChange={(e) => setWithHistory(e.target.checked)} />
-        同时导入复习记录（卡包需包含学习进度）
-      </label>
-    </Modal>
-  )
-}
-
-function CreateDeckDialog({ onClose, onCreated }: { onClose: () => void; onCreated: (deckId: string) => void }) {
-  const toast = useToast()
-  const [name, setName] = useState('')
-  const [lang, setLang] = useState<Lang>('ja')
-  async function run() {
-    const deck = await toast.track(api.createDeck({ name: name.trim(), lang }), { pending: '正在创建…', done: '卡组建好了' }).catch(() => null)
-    if (deck) {
-      onClose()
-      onCreated(deck.id)
-    }
-  }
-  return (
-    <Modal
-      title="新建卡组"
-      onClose={onClose}
-      footer={
-        <>
-          <button className="button" onClick={onClose}>取消</button>
-          <button className="button button-primary" disabled={!name.trim()} onClick={run}>创建</button>
-        </>
-      }
-    >
-      <label className="field">
-        <span>名称</span>
-        <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="例如：N3 情绪类形容词" onKeyDown={(e) => e.key === 'Enter' && name.trim() && run()} />
-      </label>
-      <div className="field">
-        <span>语言</span>
-        <div className="segmented">
-          {(['ja', 'en'] as Lang[]).map((l) => (
-            <button key={l} className={lang === l ? 'active' : ''} onClick={() => setLang(l)}>{LANG_LABELS[l]}</button>
-          ))}
-        </div>
+    <article className="card deck" onClick={() => go({ name: 'deck', deckId: d.id })}>
+      <h3>{d.name}</h3>
+      <p className="deck-meta faint">{d.notes} 条笔记 · {d.cards} 张卡</p>
+      <div className="deck-foot">
+        <span className="chip tint" style={{ '--h': langHue(d.lang) } as React.CSSProperties}>{LANG_LABELS[d.lang]}</span>
+        <span className="chip">{SOURCE_LABELS[d.source]}</span>
+        <span className="progress" title={`已学 ${d.learned} / ${d.cards}`}>
+          <span style={{ width: `${d.cards ? (d.learned / d.cards) * 100 : 0}%` }} />
+        </span>
+        <span className={`deck-left${left ? '' : ' faint'}`}>{left ? `${left} 张` : '已完成'}</span>
+        <button
+          className="button button-small"
+          disabled={!left}
+          onClick={(e) => {
+            e.stopPropagation()
+            go({ name: 'review', scope: { lang: d.lang, deckIds: [d.id] }, title: d.name })
+          }}
+        >
+          复习
+        </button>
       </div>
-    </Modal>
+    </article>
   )
 }

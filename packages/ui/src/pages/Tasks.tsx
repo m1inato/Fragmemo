@@ -9,19 +9,13 @@ const STATUS: Record<TaskRecord['status'], string> = {
   queued: '排队中', running: '进行中', paused: '已暂停', done: '完成', failed: '失败', cancelled: '已取消'
 }
 
-export function Tasks() {
-  const { tasks, setPanel } = useShell()
+export function TasksPanel() {
+  const { tasks } = useShell()
   return (
-    <aside className="panel" aria-label="任务">
-      <header className="panel-header">
-        <h2>任务</h2>
-        <button className="icon-button" onClick={() => setPanel(null)} aria-label="关闭">✕</button>
-      </header>
-      <div className="panel-body">
-        {!tasks.length && <p className="panel-empty">还没有任务。点「AI 生成」开始。</p>}
-        {tasks.map((t) => <TaskItem key={t.id} task={t} />)}
-      </div>
-    </aside>
+    <div className="panel-body">
+      {!tasks.length && <p className="panel-empty">还没有 AI 任务。在首页描述想学的内容开始。</p>}
+      {tasks.map((t) => <TaskItem key={t.id} task={t} />)}
+    </div>
   )
 }
 

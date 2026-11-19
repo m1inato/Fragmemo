@@ -1,25 +1,19 @@
-import { answerText, noteTitle, stripHtml, type Note, type ReviewScope } from '@fragmemo/core'
-import { useMemo, useState } from 'react'
 import type { TaskInput } from '@fragmemo/ai'
-import { ShellButtons } from '../components/ShellButtons'
-import { TitleBar } from '../components/TitleBar'
+import { answerText, noteTitle, stripHtml, type Note } from '@fragmemo/core'
+import { useMemo, useState } from 'react'
+import { Icon } from '../components/Icon'
 import { useToast } from '../components/Toast'
-import { useShell } from '../lib/shell'
+import { Topbar } from '../components/Topbar'
 import { api } from '../lib/api'
-import { LANG_LABELS, MODE_LABELS, NOTE_TYPE_LABELS } from '../lib/format'
+import { LANG_LABELS, MODE_LABELS, NOTE_TYPE_LABELS, SOURCE_LABELS, langHue } from '../lib/format'
+import { useShell } from '../lib/shell'
 import { useAsync } from '../lib/useAsync'
 import { NoteEditor } from './NoteEditor'
 
-export function DeckView({ deckId, version, onBack, onReview }: {
-  deckId: string
-  version: number
-  onBack: () => void
-  onReview: (scope: ReviewScope, title: string) => void
-}) {
-  const { data: langs } = useAsync(() => api.overview(), [version])
+export function DeckView({ deckId }: { deckId: string }) {
+  const { langs, version, go, setPanel } = useShell()
   const { data: notes } = useAsync(() => api.listNotes(deckId), [deckId, version])
   const toast = useToast()
-  const { setPanel } = useShell()
   const [query, setQuery] = useState('')
   const [editing, setEditing] = useState<Note | 'new' | null>(null)
   const deck = langs?.flatMap((l) => l.decks).find((d) => d.id === deckId)
@@ -42,78 +36,79 @@ export function DeckView({ deckId, version, onBack, onReview }: {
       .filter((r) => !q || r.title.toLowerCase().includes(q) || r.detail.toLowerCase().includes(q) || r.note.tags.some((t) => t.toLowerCase().includes(q)))
   }, [notes, query])
 
+  const left = deck ? deck.due + deck.fresh : 0
+
   return (
-    <div className="page deck-view">
-      <TitleBar
-        left={<button className="button button-ghost" onClick={onBack}>← 卡组</button>}
-        center={<span className="titlebar-title">{deck?.name ?? ''}</span>}
-        right={
-          <>
-            <button className="button button-ghost" onClick={() => setEditing('new')}>添加笔记</button>
-            <ShellButtons />
-            {deck && (
-              <button className="button button-primary button-small" disabled={!deck.due && !deck.fresh} onClick={() => onReview({ lang: deck.lang, deckIds: [deck.id] }, deck.name)}>
-                复习
-              </button>
-            )}
-          </>
-        }
-      />
-      <main className="deck-main">
-        {deck && (
-          <div className="deck-head">
-            <div>
-              <p className="eyebrow">{LANG_LABELS[deck.lang]} · {sourceLabel(deck.source)} · v{deck.version}</p>
+    <div className="page">
+      <Topbar />
+      <div className="page-scroll">
+        <div className="page-inner">
+          {deck && (
+            <section className="hero">
+              <div className="hero-tags">
+                <span className="chip tint" style={{ '--h': langHue(deck.lang) } as React.CSSProperties}>{LANG_LABELS[deck.lang]}</span>
+                <span className="chip">{SOURCE_LABELS[deck.source]}</span>
+                <span className="mono faint">v{deck.version} · {deck.id}</span>
+              </div>
               <h1>{deck.name}</h1>
-              <p className="deck-stats">
-                {deck.notes} 条笔记 · {deck.cards} 张卡 · 已学 {deck.learned} · 待复习 {deck.due} · 今日新卡 {deck.fresh}
+              <p className="stats">
+                <span><b>{deck.notes}</b> 条笔记</span>
+                <span><b>{deck.cards}</b> 张卡</span>
+                <span>已学 <b>{deck.learned}</b></span>
+                <span>待复习 <b>{deck.due}</b></span>
+                <span>今日新卡 <b>{deck.fresh}</b></span>
               </p>
-            </div>
-            <div className="deck-tools">
-              {rawCount > 0 && (
-                <button className="button button-small" onClick={() => runTask({ kind: 'convert-raw', lang: deck.lang, deckId }, `把 ${rawCount} 条 Anki 卡片转成标准笔记`)}>
-                  AI 转为标准卡片
+              <div className="hero-actions">
+                <button className="button button-primary" disabled={!left} onClick={() => go({ name: 'review', scope: { lang: deck.lang, deckIds: [deck.id] }, title: deck.name })}>
+                  <Icon name="play" size={14} />
+                  {left ? `复习 ${left} 张` : '今天已完成'}
                 </button>
-              )}
-              {thin.length > 0 && (
-                <button className="button button-small" onClick={() => runTask({ kind: 'enrich-notes', lang: deck.lang, deckId, noteIds: thin, fields: ['reading', 'examples', 'confusables'] }, `为 ${thin.length} 条单词补读音、例句和易混词`)}>
-                  AI 补全 {thin.length} 条
+                <button className="button" onClick={() => setEditing('new')}>
+                  <Icon name="plus" />
+                  添加笔记
                 </button>
-              )}
-              <input className="search" type="search" placeholder="搜索词、释义或标签" value={query} onChange={(e) => setQuery(e.target.value)} />
-            </div>
+                {thin.length > 0 && (
+                  <button className="button" onClick={() => runTask({ kind: 'enrich-notes', lang: deck.lang, deckId, noteIds: thin, fields: ['reading', 'examples', 'confusables'] }, `为 ${thin.length} 条单词补读音、例句和易混词`)}>
+                    <Icon name="sparkles" />
+                    AI 补全 {thin.length} 条
+                  </button>
+                )}
+                {rawCount > 0 && (
+                  <button className="button" onClick={() => runTask({ kind: 'convert-raw', lang: deck.lang, deckId }, `把 ${rawCount} 条 Anki 卡片转成标准笔记`)}>
+                    <Icon name="sparkles" />
+                    AI 转为标准卡片
+                  </button>
+                )}
+              </div>
+            </section>
+          )}
+
+          <div className="tools">
+            <span className="faint">{query ? `${rows.length} / ${notes?.length ?? 0} 条` : `${notes?.length ?? 0} 条笔记`}</span>
+            <span className="spacer" />
+            <input className="tools-search" type="search" placeholder="搜索词、释义或标签…" value={query} onChange={(e) => setQuery(e.target.value)} />
           </div>
-        )}
-        {notes && !notes.length && <p className="muted deck-empty">还没有笔记，点右上角「添加笔记」。</p>}
-        {!!rows.length && (
-          <table className="notes">
-            <thead>
-              <tr>
-                <th>内容</th>
-                <th>释义</th>
-                <th>类型</th>
-                <th>标签</th>
-              </tr>
-            </thead>
-            <tbody>
+
+          {notes && !notes.length && <p className="empty faint">还没有笔记。添加一条，或者让 AI 补一些进来。</p>}
+          {rows.length > 0 && (
+            <div className="card note-list">
               {rows.map(({ note, title, detail }) => (
-                <tr key={note.id} onClick={() => setEditing(note)}>
-                  <td className="notes-title">{title}</td>
-                  <td className="notes-detail">{detail}</td>
-                  <td>
-                    <span className="chip chip-quiet">{NOTE_TYPE_LABELS[note.type]}</span>
-                    {note.mode && <span className="chip chip-quiet">{MODE_LABELS[note.mode]}</span>}
-                  </td>
-                  <td className="notes-tags">{note.tags.join(' ')}</td>
-                </tr>
+                <div key={note.id} className="note-row" onClick={() => setEditing(note)} lang={deck?.lang}>
+                  <div className="note-main">
+                    <p className="note-title">{title}</p>
+                    <p className="note-detail muted">{detail}</p>
+                  </div>
+                  <div className="note-tags">
+                    {note.mode && <span className="chip">{MODE_LABELS[note.mode]}</span>}
+                    <span className="chip">{NOTE_TYPE_LABELS[note.type]}</span>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
-        )}
-      </main>
-      {editing && deck && (
-        <NoteEditor deck={deck} note={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />
-      )}
+            </div>
+          )}
+        </div>
+      </div>
+      {editing && deck && <NoteEditor deck={deck} note={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
     </div>
   )
 }
@@ -121,8 +116,4 @@ export function DeckView({ deckId, version, onBack, onReview }: {
 function detail(n: Note): string {
   if (n.type === 'raw') return stripHtml(Object.values(n.fields)[1] ?? '')
   return answerText(n, 0)
-}
-
-function sourceLabel(s: string): string {
-  return ({ ai: 'AI 生成', repo: '卡包仓库', apkg: 'Anki 导入', manual: '手动' } as Record<string, string>)[s] ?? s
 }

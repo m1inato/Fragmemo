@@ -1,6 +1,6 @@
-import type { Lang } from '@fragmemo/core'
+import type { Lang, LangSummary, ReviewScope } from '@fragmemo/core'
 import { createContext, useContext } from 'react'
-import type { TaskRecord } from '../api'
+import type { Theme, TaskRecord } from '../api'
 
 /** What the Generate dialog opens with: a tab and, optionally, a target deck. */
 export interface GeneratePreset {
@@ -8,13 +8,29 @@ export interface GeneratePreset {
   lang?: Lang
   deckId?: string
   text?: string
+  request?: string
 }
 
+export type View = { name: 'home' } | { name: 'deck'; deckId: string } | { name: 'review'; scope: ReviewScope; title: string }
+export type Panel = 'qa' | 'tasks'
+
+/** Everything the frame around the pages shares: navigation, the right panel, AI entry points. */
 export interface Shell {
+  view: View
+  go(view: View): void
+  /** Per-language overview, refreshed whenever the Library changes. */
+  langs: LangSummary[] | undefined
+  /** Bumped on every Library change, for pages that load their own data. */
+  version: number
   tasks: TaskRecord[]
-  panel: 'tasks' | 'qa' | null
-  setPanel(p: 'tasks' | 'qa' | null): void
+  panel: Panel | null
+  setPanel(p: Panel | null): void
   openGenerate(preset?: GeneratePreset): void
+  openImport(): void
+  openCreateDeck(lang?: Lang): void
+  openSettings(): void
+  theme: Theme
+  setTheme(t: Theme): void
 }
 
 export const ShellContext = createContext<Shell | null>(null)
