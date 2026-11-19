@@ -6,7 +6,7 @@ declare class TextEncoder {
 }
 declare class TextDecoder {
   constructor(label?: string)
-  decode(input?: Uint8Array): string
+  decode(input?: Uint8Array, options?: { stream?: boolean }): string
 }
 declare const crypto: {
   getRandomValues<T extends Uint8Array>(array: T): T

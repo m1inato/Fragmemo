@@ -12,10 +12,12 @@ async function invoke<T>(channel: string, ...args: unknown[]): Promise<T> {
   }
 }
 
-function subscribe(channel: string, fn: () => void): () => void {
-  const listener = () => fn()
+function subscribe<T>(channel: string, fn: (payload: T) => void): () => void {
+  const listener = (_e: unknown, payload: T) => fn(payload)
   ipcRenderer.on(channel, listener)
-  return () => ipcRenderer.removeListener(channel, listener)
+  return () => {
+    ipcRenderer.removeListener(channel, listener)
+  }
 }
 
 const api = {
@@ -41,7 +43,24 @@ const api = {
   pinMode: (cardId, mode) => invoke('review:pin', cardId, mode),
   finishReview: () => invoke('review:finish'),
 
-  onLibraryChanged: (fn) => subscribe('library:changed', fn)
+  onLibraryChanged: (fn) => subscribe('library:changed', () => fn()),
+
+  getAiSettings: () => invoke('ai:getSettings'),
+  saveAiSettings: (patch) => invoke('ai:saveSettings', patch),
+  testAi: (purpose) => invoke('ai:test', purpose),
+  getProfile: (lang) => invoke('profile:get', lang),
+  saveProfile: (lang, text) => invoke('profile:save', lang, text),
+
+  listTasks: () => invoke('tasks:list'),
+  createTask: (input) => invoke('tasks:create', input),
+  taskAction: (id, action) => invoke('tasks:act', id, action),
+  resolvePending: (taskId, noteIds, accept) => invoke('tasks:resolve', taskId, noteIds, accept),
+  onTasksChanged: (fn) => subscribe('tasks:changed', fn),
+
+  ask: (id, lang, question) => invoke('qa:ask', id, lang, question),
+  stopAsking: (id) => invoke('qa:stop', id),
+  forgetConversation: (id) => invoke('qa:forget', id),
+  onAskDelta: (fn) => subscribe('qa:delta', fn)
 } satisfies Api
 
 contextBridge.exposeInMainWorld('api', api)

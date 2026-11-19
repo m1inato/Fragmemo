@@ -1,6 +1,6 @@
 import {
   createIds, createLibrary, noteKey, paths, systemClock,
-  type DeckMeta, type ImportResult, type Lang, type LangSummary, type Library, type Note, type Settings, type SettingsPatch
+  type DeckMeta, type ImportResult, type Lang, type LangSummary, type Library, type Note, type Settings, type SettingsPatch, type Storage
 } from '@fragmemo/core'
 import type { NoteDraft } from '@fragmemo/ui/api'
 import { app, dialog, shell, type BrowserWindow } from 'electron'
@@ -11,11 +11,14 @@ import { createNodeStorage, resolveInside } from './storage'
 import { getSettings, saveSettings } from './settings'
 import { createGitSync } from './sync'
 
-let current: { root: string; lib: Library; sync: ReturnType<typeof createGitSync> } | null = null
+let current: { root: string; lib: Library; storage: Storage; sync: ReturnType<typeof createGitSync> } | null = null
 let notify: () => void = () => {}
+let opened: (storage: Storage, deviceId: string) => void = () => {}
 
-export function initLibrary(onChanged: () => void) {
+/** `onOpen` runs each time a Library is opened, for modules that keep state inside it. */
+export function initLibrary(onChanged: () => void, onOpen: (storage: Storage, deviceId: string) => void) {
   notify = onChanged
+  opened = onOpen
   const { libraryPath } = getSettings()
   if (libraryPath) open(libraryPath).catch((err) => console.error('[library] open failed', err))
 }
@@ -23,6 +26,17 @@ export function initLibrary(onChanged: () => void) {
 export function library(): Library {
   if (!current) throw new Error('还没有打开 Library')
   return current.lib
+}
+
+/** Tell the UI that notes or decks changed outside the usual IPC calls (e.g. a finished task). */
+export function notifyChanged() {
+  notify()
+}
+
+/** Raw file access inside the Library, for shell-owned files such as tasks.json. */
+export function libraryStorage(): Storage {
+  if (!current) throw new Error('还没有打开 Library')
+  return current.storage
 }
 
 export function libraryRoot(): string | null {
@@ -34,11 +48,13 @@ async function open(root: string) {
   await sync.init().catch((err) => console.warn('[library] git unavailable, history disabled', err))
   await sync.pull().catch((err) => console.warn('[library] pull failed', err))
   const { deviceId } = getSettings()
+  const storage = createNodeStorage(root)
   current = {
     root,
     sync,
+    storage,
     lib: createLibrary({
-      storage: createNodeStorage(root),
+      storage,
       sync,
       clock: systemClock,
       ids: createIds(),
@@ -49,6 +65,7 @@ async function open(root: string) {
   }
   await current.lib.listDecks()
   saveSettings({ libraryPath: root })
+  opened(storage, deviceId)
   notify()
 }
 
@@ -75,13 +92,14 @@ export async function revealLibrary() {
 }
 
 /** Commit, then push in the background; a failed push is retried with the next commit. */
-export async function commit(message: string) {
-  if (!current) return
+export async function commit(message: string): Promise<string | null> {
+  if (!current) return null
   const hash = await current.lib.commit(message).catch((err) => {
     console.warn('[library] commit failed', err)
     return null
   })
   if (hash) current.sync.push().catch((err) => console.warn('[library] push failed', err))
+  return hash
 }
 
 export const getLibrarySettings = (): Promise<Settings> => library().settings()

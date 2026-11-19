@@ -65,7 +65,7 @@ fragmemo/
 ├── packages/
 │   ├── core/      # 类型、卡组读写、调度、回放、去重、模式选择、复习编排、.apkg / revlog 导入
 │   ├── ui/        # React 组件、Api 接口定义
-│   └── ai/        # Provider、Agent Harness、工具、写入流水线、prompt、schema、TTS 接口
+│   └── ai/        # Provider、Agent Harness、工具、写入流水线、prompt、任务定义（runJob）、TTS 接口
 ├── apps/
 │   ├── desktop/   # Electron
 │   └── android/   # Capacitor
@@ -74,7 +74,7 @@ fragmemo/
 
 | 包 | 依赖 | 运行于 | 平台实现 |
 | --- | --- | --- | --- |
-| core | ts-fsrs、zod、jszip、sql.js、kuromoji | 两端 | — |
+| core | ts-fsrs、zod、jszip、sql.js、fzstd、kuromoji | 两端 | — |
 | ui | react、core | 两端 | — |
 | ai | core、zod | 两端 | — |
 | desktop | electron、系统 git | macOS | NodeStorage、GitCliSync、CliProvider、McpToolServer、TaskQueue、SystemTts |
@@ -238,7 +238,7 @@ Library 是一个私有 GitHub 仓库，git 同时承担同步、历史和回滚
 - 写入范围：Android 只写 `logs/android-*/` 与 `inbox.jsonl`；其余只有 macOS 写
 - `.gitattributes`：`inbox.jsonl merge=union`
 - commit message：`ai: <taskKind> <摘要> #<taskId>` / `review: <n> cards` / `edit: <deckId>`
-- 回滚：整个 AI 任务 = `git revert <commit>`；单卡历史 = 遍历该 `notes.jsonl` 的历史版本并按 Note id 取行
+- 回滚：整个 AI 任务 = 按任务记录逐条还原（新建的标记 `deleted`，修改的恢复写入前的版本，之后又被改过的保留）并提交 `revert: <kind> #<taskId>`。不用 `git revert`：`notes.jsonl` 相邻行一变就会冲突；单卡历史 = 遍历该 `notes.jsonl` 的历史版本并按 Note id 取行
 - 大文件：`media/` 直接入库；仓库过大时迁至 Git LFS
 - 同步层接口 `SyncBackend { pull(); commit(msg); push() }`，两端各一个实现
 
@@ -348,14 +348,21 @@ export function replay(logs: LogEntry[], scheduler: Scheduler): Map<string, Card
 **Provider**
 
 ```ts
-export interface Provider {
-  id: 'claude-cli' | 'codex-cli' | 'openai-compatible'
-  available(): Promise<boolean>
-  // 一轮对话，可带工具；返回文本或工具调用
+export type Provider = ApiProvider | CliProvider
+
+// 聊天 API：harness 跑工具循环，每次 step 一轮
+export interface ApiProvider {
+  kind: 'api'; id: 'openai-compatible'; available(): Promise<boolean>
   step(req: { system: string; messages: Msg[]; tools?: ToolSpec[]; signal: AbortSignal },
        onText?: (delta: string) => void): Promise<AssistantTurn>
-  // 会话保持：同一 sessionId 的后续调用延续上下文
-  session?: string
+}
+
+// 本机 Agent CLI：自己跑工具循环，经 MCP 回调 call；session 延续上一次对话
+export interface CliProvider {
+  kind: 'cli'; id: 'claude-cli' | 'codex-cli'; available(): Promise<boolean>
+  run(req: { system: string; prompt: string; session?: string; tools: ToolSpec[]
+             call(name: string, input: unknown): Promise<{ output: string; error?: boolean }>
+             maxSteps: number; signal: AbortSignal; onEvent?: (e: AgentEvent) => void }): Promise<{ text: string; session?: string }>
 }
 ```
 
@@ -365,7 +372,7 @@ export interface Provider {
 | CodexCliProvider | macOS | 启动本机已登录的 `codex` 子进程，同样只接入 MCP 工具 |
 | OpenAICompatProvider | 两端 | base URL + key + model；key 只存本机 |
 
-CLI 参数集中在 `apps/desktop/src/ai/cli-args.ts`，以当前版本 `--help` 为准。每个用途（生成、问答、修正）可单独选 Provider 和模型。
+CLI 参数集中在 `apps/desktop/src/main/cli-args.ts`，以当前版本 `--help` 为准；prompt 经 stdin 传入。用途分“生成与修改”（所有写入任务，修正轮在同一会话内进行，必须同一 Provider）和“问答”，各自可选 Provider 和模型。CodexCliProvider 待 M2 之后补上。
 
 **Agent Harness**
 
@@ -375,17 +382,22 @@ export interface Tool<I, O> {
   input: z.ZodType<I>
   run(input: I, ctx: ToolCtx): Promise<O>
 }
-export interface ToolCtx { library: Library; lang: Lang; changes: ChangeSet; signal: AbortSignal }
+export interface ToolCtx {
+  library: Library; analyzer: Analyzer; lang: Lang
+  deckId?: string                 // 新建笔记放进哪个卡组
+  changes: ChangeSet; ids: Ids; signal: AbortSignal
+}
 
 export function runAgent(o: {
   provider: Provider; system: string; prompt: string; tools: Tool<any, any>[]
   maxSteps?: number            // 默认 12
   signal: AbortSignal; onEvent?: (e: AgentEvent) => void
+  history?: Msg[]; session?: string   // 延续上一轮（API 用 transcript，CLI 用 session）
 }): Promise<{ text: string; changes: ChangeSet; session?: string; transcript: Msg[] }>
 ```
 
 - API Provider：harness 自己循环，模型不再调工具或达到 `maxSteps` 时结束
-- CLI Provider：CLI 自身循环；同一套 `Tool` 由 `McpToolServer`（stdio）暴露，工具在 Electron 主进程内执行
+- CLI Provider：CLI 自身循环；同一套 `Tool` 由主进程内的 MCP 服务暴露（Streamable HTTP，只绑 127.0.0.1，每次运行一个随机 bearer token），工具在 Electron 主进程内执行。用 HTTP 而不是 stdio，省掉一个转发进程。CLI 的内置工具全部禁用（`--tools ""` + `--strict-mcp-config`），步数在 MCP 一侧计数限制
 - 运行记录写入 `tasks/<taskId>.jsonl`
 
 | 工具 | 读写 | 作用 |
@@ -402,14 +414,17 @@ export function runAgent(o: {
 **写入流水线**（所有 AI 写操作共用）
 
 1. `runAgent` 产出 `ChangeSet`
-2. 代码检查，生成问题清单：schema 校验；读音与分词结果一致；例句包含该词（按原形）；与已有 `key` 不重复；例句中超出目标等级的词须在 known\_terms 内
+2. 代码检查，生成问题清单：schema 校验；读音与分词结果一致；例句包含该词（按原形）；与已有 `key` 不重复；例句中超出目标等级的词须在 known\_terms 内（待定：需要分级词表，尚未实现）
 3. 清单非空 → 在同一会话中交回模型：逐条给出问题与代码依据，要求只通过 `propose_notes` 修改并回复改动的 id，无改动回复 `NONE`
 4. 第 2–3 步最多 2 轮
-5. 通过的变更写入 `notes.jsonl` → `sync.commit()`；未通过的进入“待确认”；删除类变更始终进入“待确认”
+5. 通过的变更写入 `notes.jsonl` → `sync.commit()`；未通过的进入“待确认”（在任务面板逐条加入或丢弃）；删除类变更始终进入“待确认”
+6. 每条写入都记下写入前的版本（`tasks/<taskId>.applied.json`），供整批撤销
 
 **任务队列**（macOS）
 
-单队列串行；状态持久化在 `tasks.json`，重启后续跑；可暂停、取消、重试；任务上报阶段与进度。Android 只能入队（`queued`），由 macOS 同步后执行。
+单队列串行；状态持久化在 `tasks.json`，重启后续跑；可暂停、取消、重试、整批撤销；任务上报阶段与进度。中途失败时已写入的批次照常提交，仍可撤销。Android 只能入队（`queued`），由 macOS 同步后执行。
+
+任务本身是 `packages/ai` 里的纯函数 `runJob(input, deps)`；队列、持久化与提交在 `apps/desktop/src/main/tasks.ts`、`jobs.ts`。
 
 | kind | 输入 | 工具 |
 | --- | --- | --- |
@@ -419,7 +434,7 @@ export function runAgent(o: {
 | convert-raw | raw 卡组 | 全部 |
 | process-inbox | inbox | 全部 |
 | leech-helper | 高遗忘卡 | 全部 |
-| tts | 文本列表 | — |
+| tts | 文本列表 | —（M3，随 TTS 引擎一起） |
 
 **生成约束**：system prompt = 角色 + 对应语言的学习者档案 + 规则（term 用原形、例句不超等级、不确定则留空）；`propose_notes` 的输入 schema 即 Note 字段 schema；大批量分批，每批 10–15 条。
 
@@ -446,7 +461,7 @@ export interface TtsOpts { lang: Lang; voice?: string }
 | 里程碑 | 范围 | 完成标准 |
 | --- | --- | --- |
 | M1 本地复习 | monorepo、core 类型、NodeStorage、日志与 `replay`、四种作答模式、.apkg / revlog 导入 | `replay` 顺序无关性测试通过；导入真实 JLPT 卡包并连续使用 7 天 |
-| M2 AI | Provider（ClaudeCli、OpenAICompat）、Agent Harness、MCP 工具服务、写入流水线、任务队列、问答 | 生成 3 套卡组并人工抽检；可整批 revert |
+| M2 AI | Provider（ClaudeCli、OpenAICompat）、Agent Harness、MCP 工具服务、写入流水线、任务队列、问答 | 生成 3 套卡组并人工抽检；可整批撤销 |
 | M3 同步 + Android | GitCliSync、IsoGitSync、Capacitor 壳、CapStorage、TTS、复习提醒 | 两端交替复习 7 天无冲突 |
 | M4 卡包仓库 | 公开 GitHub 仓库、`index.json`、应用内浏览下载、.apkg 转换脚本 | 从仓库安装卡包并复习 |
 

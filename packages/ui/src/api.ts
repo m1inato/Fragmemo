@@ -1,3 +1,4 @@
+import type { Proposal, TaskInput, TaskKind } from '@fragmemo/ai'
 import type {
   AnswerMode, DeckMeta, GrammarNote, ImportResult, Lang, LangSummary, Note, Rating, ReviewItem, ReviewQueue,
   ReviewScope, SentenceNote, Settings, SettingsPatch, WordNote
@@ -20,6 +21,55 @@ type Draft<N extends Note> = Pick<N, 'type' | 'fields'> & { id?: string; tags?: 
 export type NoteDraft = Draft<WordNote> | Draft<SentenceNote> | Draft<GrammarNote>
 
 export interface Answer { rating: Rating; mode: AnswerMode; correct?: boolean; durationMs: number }
+
+export type AiProviderId = 'claude-cli' | 'openai-compatible'
+/** write: every task that changes notes; qa: the side panel. */
+export type AiPurpose = 'write' | 'qa'
+
+export interface AiSettings {
+  purposes: Record<AiPurpose, { provider: AiProviderId; model: string }>
+  claude: { path: string; model: string; baseUrl: string; hasAuthToken: boolean }
+  openai: { baseUrl: string; model: string; hasApiKey: boolean }
+}
+
+/** Secrets are write-only: send a value to set it, an empty string to clear it. */
+export interface AiSettingsPatch {
+  purposes?: Partial<AiSettings['purposes']>
+  claude?: Partial<{ path: string; model: string; baseUrl: string; authToken: string }>
+  openai?: Partial<{ baseUrl: string; model: string; apiKey: string }>
+}
+
+export type TaskStatus = 'queued' | 'running' | 'paused' | 'done' | 'failed' | 'cancelled'
+export type TaskAction = 'pause' | 'resume' | 'cancel' | 'retry' | 'undo' | 'remove'
+
+export interface PendingProposal { proposal: Proposal; issues: string[] }
+
+export interface AiTaskResult {
+  summary: string
+  deckId?: string
+  applied: number
+  commit?: string
+  /** Set once the learner undid the whole batch. */
+  undone?: { at: number; skipped: string[] }
+  /** Notes that failed the checks, waiting for the learner. */
+  pending: PendingProposal[]
+}
+
+export interface TaskRecord {
+  id: string
+  kind: TaskKind
+  title: string
+  input: TaskInput
+  status: TaskStatus
+  stage?: string
+  /** 0–1, or -1 when unknown. */
+  progress?: number
+  error?: string
+  createdAt: number
+  updatedAt: number
+  device: string
+  result?: AiTaskResult
+}
 
 export interface Api {
   getApp(): Promise<AppState>
@@ -48,4 +98,24 @@ export interface Api {
   finishReview(): Promise<number>
 
   onLibraryChanged(fn: () => void): () => void
+
+  getAiSettings(): Promise<AiSettings>
+  saveAiSettings(patch: AiSettingsPatch): Promise<AiSettings>
+  /** Resolves with a short status line, rejects with what is wrong. */
+  testAi(purpose: AiPurpose): Promise<string>
+  getProfile(lang: Lang): Promise<string>
+  saveProfile(lang: Lang, text: string): Promise<void>
+
+  listTasks(): Promise<TaskRecord[]>
+  createTask(input: TaskInput): Promise<TaskRecord>
+  taskAction(id: string, action: TaskAction): Promise<void>
+  /** Accept or drop notes a task left for review. */
+  resolvePending(taskId: string, noteIds: string[], accept: boolean): Promise<void>
+  onTasksChanged(fn: (tasks: TaskRecord[]) => void): () => void
+
+  /** Ask in a side-panel conversation; the answer also streams through onAskDelta. */
+  ask(conversationId: string, lang: Lang, question: string): Promise<string>
+  stopAsking(conversationId: string): Promise<void>
+  forgetConversation(conversationId: string): Promise<void>
+  onAskDelta(fn: (e: { conversationId: string; delta: string }) => void): () => void
 }

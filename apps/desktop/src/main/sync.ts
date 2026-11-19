@@ -10,19 +10,27 @@ const run = promisify(execFile)
 // The Library is a git repository: git gives us history, revert and (with a remote) sync.
 // We drive the system git so the user's credentials and config just work.
 
-const CANDIDATES = ['/opt/homebrew/bin/git', '/usr/local/bin/git', '/usr/bin/git']
-let gitPath: string | null = null
+const found = new Map<string, string>()
 
-async function findGit(): Promise<string> {
-  if (gitPath) return gitPath
-  const found = CANDIDATES.find((p) => existsSync(p))
-  if (found) return (gitPath = found)
-  // Apps launched from Finder do not inherit the login shell's PATH.
-  const shell = process.env.SHELL || '/bin/zsh'
-  const { stdout } = await run(shell, ['-lc', 'command -v git'], { env: cleanEnv() }).catch(() => ({ stdout: '' }))
-  if (stdout.trim()) return (gitPath = stdout.trim())
-  throw new Error('git not found')
+/**
+ * Locate a command-line tool: the given candidates first, then the login shell's PATH, since
+ * apps launched from Finder do not inherit it.
+ */
+export async function findExecutable(name: string, candidates: string[]): Promise<string> {
+  const cached = found.get(name)
+  if (cached && existsSync(cached)) return cached
+  let path = candidates.find((p) => existsSync(p))
+  if (!path) {
+    const shell = process.env.SHELL || '/bin/zsh'
+    const { stdout } = await run(shell, ['-lc', `command -v ${name}`], { env: cleanEnv() }).catch(() => ({ stdout: '' }))
+    path = stdout.trim().split('\n').pop() || undefined
+  }
+  if (!path) throw new Error(`${name} not found`)
+  found.set(name, path)
+  return path
 }
+
+const findGit = () => findExecutable('git', ['/opt/homebrew/bin/git', '/usr/local/bin/git', '/usr/bin/git'])
 
 /** Child-process environment without credentials meant for other tools, with a usable PATH. */
 export function cleanEnv(): NodeJS.ProcessEnv {

@@ -12,9 +12,9 @@
 
 .titlebar {
   flex: none;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
   align-items: center;
+  gap: 12px;
   height: 52px;
   /* Room for the inset traffic lights. */
   padding: 0 14px 0 84px;
@@ -26,10 +26,17 @@
   -webkit-app-region: no-drag;
 }
 .titlebar-side {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 4px;
+}
+/* The title takes what is left and gives way first when the window or a panel squeezes it. */
+.titlebar-center {
+  flex: 1;
   min-width: 0;
+  display: flex;
+  justify-content: center;
 }
 .titlebar-right {
   justify-content: flex-end;
@@ -40,7 +47,6 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 40vw;
   display: block;
 }
 

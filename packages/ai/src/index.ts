@@ -1,0 +1,7 @@
+export * from './types'
+export { toolSpec, allTools, readTools, proposeNotes, type Tool } from './tools'
+export { runAgent, createChangeSet, type AgentResult } from './harness'
+export { checkChanges, fixPrompt, runWritePipeline, applyProposals, type Issue, type PipelineResult } from './pipeline'
+export { createOpenAICompatProvider, type OpenAICompatConfig } from './openai'
+export { writerSystem, tutorSystem, prompts } from './prompts'
+export { runJob, acceptPending, undoProposals, TASK_LABELS, type TaskInput, type TaskKind, type DeckTarget, type JobResult, type JobDeps, type PendingNote } from './jobs'

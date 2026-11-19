@@ -1,6 +1,7 @@
 import type { Lang, LangSummary, ReviewScope } from '@fragmemo/core'
 import { useState } from 'react'
 import { Modal } from '../components/Modal'
+import { ShellButtons } from '../components/ShellButtons'
 import { TitleBar } from '../components/TitleBar'
 import { useToast } from '../components/Toast'
 import { api } from '../lib/api'
@@ -24,6 +25,7 @@ export function Home({ version, onOpenDeck, onReview, onSettings }: {
           <>
             <button className="button button-ghost" onClick={() => setDialog('create')}>新建卡组</button>
             <button className="button button-ghost" onClick={() => setDialog('import')}>导入 Anki 卡包</button>
+            <ShellButtons />
             <button className="icon-button" onClick={onSettings} aria-label="设置" title="设置 (⌘,)">⚙</button>
           </>
         }

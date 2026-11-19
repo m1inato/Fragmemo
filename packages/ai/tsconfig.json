@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Same rule as core: runs unchanged in Electron main and in the Android WebView.
+    "lib": ["ES2023"],
+    "types": [],
+    "noEmit": true
+  },
+  "include": ["src", "../core/src/env.d.ts"]
+}

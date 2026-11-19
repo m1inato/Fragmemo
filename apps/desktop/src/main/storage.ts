@@ -10,13 +10,16 @@ export function resolveInside(root: string, rel: string): string {
   return abs
 }
 
+let tmpSeq = 0
+
 export function createNodeStorage(root: string): Storage {
   const at = (p: string) => resolveInside(root, p)
 
   async function atomicWrite(p: string, data: string | Uint8Array) {
     const file = at(p)
     await mkdir(dirname(file), { recursive: true })
-    const tmp = `${file}.${process.pid}.tmp`
+    // Unique per write: two writes to the same file may overlap, and must not share a temp file.
+    const tmp = `${file}.${process.pid}.${++tmpSeq}.tmp`
     await writeFile(tmp, data)
     await rename(tmp, file)
   }

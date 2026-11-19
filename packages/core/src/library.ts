@@ -73,6 +73,10 @@ export interface Library {
   knownTerms(lang: Lang): Promise<{ mastered: string[]; learning: string[] }>
 
   addToInbox(item: Omit<InboxItem, 'id' | 'createdAt' | 'device'>): Promise<void>
+  readInbox(): Promise<InboxItem[]>
+  /** The learner profile for a language (`profile.<lang>.md`), injected into every AI call. */
+  profile(lang: Lang): Promise<string>
+  saveProfile(lang: Lang, text: string): Promise<void>
   importApkg(bytes: Uint8Array): Promise<ImportResult>
   importRevlog(bytes: Uint8Array): Promise<number>
   importDeckFolder(files: Map<string, Uint8Array>): Promise<ImportResult>
@@ -584,6 +588,16 @@ export function createLibrary(deps: LibraryDeps): Library {
       await storage.appendText(paths.inbox, toJsonl([entry]))
     }),
 
+    async readInbox() {
+      return parseJsonl<InboxItem>(await storage.readText(paths.inbox))
+    },
+
+    async profile(lang) {
+      return (await storage.readText(paths.profile(lang))) ?? defaultProfile(lang)
+    },
+
+    saveProfile: (lang, text) => serial(() => storage.writeText(paths.profile(lang), text.trim() + '\n')),
+
     importApkg: (bytes) => serial(async () => importCollection(await state(), await readApkg(bytes))),
 
     importRevlog: (bytes) => serial(async () => {
@@ -661,6 +675,12 @@ export function createLibrary(deps: LibraryDeps): Library {
     commit: (message) => serial(() => sync.commit(message))
   }
   return lib
+}
+
+function defaultProfile(lang: Lang): string {
+  return lang === 'ja'
+    ? '# 学习档案（日语）\n- 母语：中文；释义用中文\n- 水平：N4，目标 N3；例句不超过 N3\n- 不用罗马音；标注与中文含义不同的汉字词\n'
+    : '# 学习档案（英语）\n- 母语：中文；释义用中文\n- 水平：大学英语四级，目标六级\n- 例句用常见场景，避免生僻词\n'
 }
 
 function firstReviews(logs: readonly LogEntry[]): Map<string, number> {

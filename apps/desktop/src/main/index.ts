@@ -2,9 +2,15 @@ import type { Theme } from '@fragmemo/ui/api'
 import { app, BrowserWindow, ipcMain, nativeTheme, net, protocol, shell, type IpcMainInvokeEvent } from 'electron'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import type { TaskInput } from '@fragmemo/ai'
+import type { AiPurpose, AiSettingsPatch, TaskAction } from '@fragmemo/ui/api'
+import type { Lang } from '@fragmemo/core'
+import * as ai from './ai'
+import * as jobs from './jobs'
 import * as lib from './library'
 import * as review from './review'
 import { getSettings, saveSettings } from './settings'
+import * as tasks from './tasks'
 
 // Wiring only: window, protocol and IPC registration. Behaviour lives in the domain modules.
 
@@ -107,12 +113,33 @@ function registerIpc() {
   handle('review:undo', review.undo)
   handle('review:pin', review.pinMode)
   handle('review:finish', review.finish)
+
+  handle('ai:getSettings', ai.getAiSettings)
+  handle('ai:saveSettings', (patch: AiSettingsPatch) => ai.saveAiSettings(patch))
+  handle('ai:test', (purpose: AiPurpose) => ai.testAi(purpose))
+  handle('profile:get', ai.getProfile)
+  handle('profile:save', ai.saveProfile)
+
+  handle('tasks:list', tasks.listTasks)
+  handle('tasks:create', (input: TaskInput) => jobs.createTask(input))
+  handle('tasks:act', (id: string, action: TaskAction) => tasks.act(id, action))
+  handle('tasks:resolve', jobs.resolvePending)
+
+  handle('qa:ask', (id: string, lang: Lang, question: string) =>
+    ai.ask(id, lang, question, (delta) => broadcast('qa:delta', { conversationId: id, delta })))
+  handle('qa:stop', ai.stopAsking)
+  handle('qa:forget', ai.forgetConversation)
 }
 
 app.whenReady().then(() => {
   registerMediaProtocol()
   registerIpc()
-  lib.initLibrary(() => broadcast('library:changed'))
+  jobs.registerAiRunners()
+  lib.initLibrary(
+    () => broadcast('library:changed'),
+    (storage, deviceId) =>
+      tasks.initTasks(storage, deviceId, (list) => broadcast('tasks:changed', list))
+  )
   createWindow()
   app.on('activate', () => {
     if (!BrowserWindow.getAllWindows().length) createWindow()

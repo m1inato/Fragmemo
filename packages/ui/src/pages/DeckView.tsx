@@ -1,6 +1,10 @@
 import { answerText, noteTitle, stripHtml, type Note, type ReviewScope } from '@fragmemo/core'
 import { useMemo, useState } from 'react'
+import type { TaskInput } from '@fragmemo/ai'
+import { ShellButtons } from '../components/ShellButtons'
 import { TitleBar } from '../components/TitleBar'
+import { useToast } from '../components/Toast'
+import { useShell } from '../lib/shell'
 import { api } from '../lib/api'
 import { LANG_LABELS, MODE_LABELS, NOTE_TYPE_LABELS } from '../lib/format'
 import { useAsync } from '../lib/useAsync'
@@ -14,9 +18,22 @@ export function DeckView({ deckId, version, onBack, onReview }: {
 }) {
   const { data: langs } = useAsync(() => api.overview(), [version])
   const { data: notes } = useAsync(() => api.listNotes(deckId), [deckId, version])
+  const toast = useToast()
+  const { setPanel } = useShell()
   const [query, setQuery] = useState('')
   const [editing, setEditing] = useState<Note | 'new' | null>(null)
   const deck = langs?.flatMap((l) => l.decks).find((d) => d.id === deckId)
+  const rawCount = (notes ?? []).filter((n) => n.type === 'raw').length
+  // Words missing a reading (Japanese) or any example are worth a pass.
+  const thin = (notes ?? [])
+    .filter((n) => n.type === 'word' && (!n.fields.examples?.length || (deck?.lang === 'ja' && !n.fields.reading)))
+    .map((n) => n.id)
+
+  async function runTask(input: TaskInput, what: string) {
+    if (!window.confirm(`${what}？\n改动会先经过检查，之后可以整批撤销。`)) return
+    await toast.track(api.createTask(input), { pending: '正在加入任务队列…', done: '已加入任务队列' }).catch(() => {})
+    setPanel('tasks')
+  }
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -33,6 +50,7 @@ export function DeckView({ deckId, version, onBack, onReview }: {
         right={
           <>
             <button className="button button-ghost" onClick={() => setEditing('new')}>添加笔记</button>
+            <ShellButtons />
             {deck && (
               <button className="button button-primary button-small" disabled={!deck.due && !deck.fresh} onClick={() => onReview({ lang: deck.lang, deckIds: [deck.id] }, deck.name)}>
                 复习
@@ -51,7 +69,19 @@ export function DeckView({ deckId, version, onBack, onReview }: {
                 {deck.notes} 条笔记 · {deck.cards} 张卡 · 已学 {deck.learned} · 待复习 {deck.due} · 今日新卡 {deck.fresh}
               </p>
             </div>
-            <input className="search" type="search" placeholder="搜索词、释义或标签" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <div className="deck-tools">
+              {rawCount > 0 && (
+                <button className="button button-small" onClick={() => runTask({ kind: 'convert-raw', lang: deck.lang, deckId }, `把 ${rawCount} 条 Anki 卡片转成标准笔记`)}>
+                  AI 转为标准卡片
+                </button>
+              )}
+              {thin.length > 0 && (
+                <button className="button button-small" onClick={() => runTask({ kind: 'enrich-notes', lang: deck.lang, deckId, noteIds: thin, fields: ['reading', 'examples', 'confusables'] }, `为 ${thin.length} 条单词补读音、例句和易混词`)}>
+                  AI 补全 {thin.length} 条
+                </button>
+              )}
+              <input className="search" type="search" placeholder="搜索词、释义或标签" value={query} onChange={(e) => setQuery(e.target.value)} />
+            </div>
           </div>
         )}
         {notes && !notes.length && <p className="muted deck-empty">还没有笔记，点右上角「添加笔记」。</p>}

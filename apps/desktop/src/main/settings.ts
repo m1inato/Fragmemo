@@ -2,7 +2,7 @@ import { app } from 'electron'
 import { randomBytes } from 'node:crypto'
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { Theme } from '@fragmemo/ui/api'
+import type { AiProviderId, Theme } from '@fragmemo/ui/api'
 
 // Settings that belong to this machine, not to the Library: where the Library lives,
 // this device's id for log files, and the window theme. Library-wide settings live in
@@ -12,6 +12,20 @@ export interface LocalSettings {
   libraryPath: string | null
   deviceId: string
   theme: Theme
+  ai: StoredAiSettings
+}
+
+/** Secrets are stored encrypted with the OS keychain (safeStorage), see ai.ts. */
+export interface StoredAiSettings {
+  purposes: { write: { provider: AiProviderId; model: string }; qa: { provider: AiProviderId; model: string } }
+  claude: { path: string; model: string; baseUrl: string; authToken: string }
+  openai: { baseUrl: string; model: string; apiKey: string }
+}
+
+const DEFAULT_AI: StoredAiSettings = {
+  purposes: { write: { provider: 'claude-cli', model: '' }, qa: { provider: 'claude-cli', model: '' } },
+  claude: { path: '', model: '', baseUrl: '', authToken: '' },
+  openai: { baseUrl: 'https://api.openai.com/v1', model: '', apiKey: '' }
 }
 
 const THEMES: Theme[] = ['light', 'dark', 'sepia', 'system']
@@ -32,7 +46,8 @@ export function getSettings(): LocalSettings {
   cache = {
     libraryPath: typeof raw.libraryPath === 'string' ? raw.libraryPath : null,
     deviceId: typeof raw.deviceId === 'string' && /^mac-[a-z0-9]+$/.test(raw.deviceId) ? raw.deviceId : `mac-${randomBytes(3).toString('hex')}`,
-    theme: THEMES.includes(raw.theme as Theme) ? (raw.theme as Theme) : 'system'
+    theme: THEMES.includes(raw.theme as Theme) ? (raw.theme as Theme) : 'system',
+    ai: mergeAi(DEFAULT_AI, raw.ai)
   }
   if (raw.deviceId !== cache.deviceId) persist(cache)
   return cache
@@ -49,4 +64,18 @@ function persist(s: LocalSettings) {
   const tmp = `${file()}.tmp`
   writeFileSync(tmp, JSON.stringify(s, null, 2) + '\n')
   renameSync(tmp, file())
+}
+
+/** Deep-merge one level down, so new fields get defaults and old files keep working. */
+export function mergeAi(base: StoredAiSettings, patch: unknown): StoredAiSettings {
+  const p = (patch && typeof patch === 'object' ? patch : {}) as Record<string, Record<string, unknown>>
+  const purposes = (p.purposes ?? {}) as Record<string, object>
+  return {
+    purposes: {
+      write: { ...base.purposes.write, ...(purposes.write ?? {}) },
+      qa: { ...base.purposes.qa, ...(purposes.qa ?? {}) }
+    },
+    claude: { ...base.claude, ...(p.claude ?? {}) },
+    openai: { ...base.openai, ...(p.openai ?? {}) }
+  }
 }
