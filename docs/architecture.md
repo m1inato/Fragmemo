@@ -201,12 +201,14 @@ Library/                         # 私有 git 仓库根目录
 
 | 模式 | 默认条件 | 判分 | 适用 |
 | --- | --- | --- | --- |
-| choice 选择题 | 稳定度 < 3 天 | 自动 | word, grammar |
+| choice 选择题 | 稳定度 < 3 天 | 自动 | word, grammar, raw* |
 | listen 听音辨义 | 3–10 天，有音频或 TTS | 自评 | word, sentence |
-| flip 翻卡 | 10–30 天；raw 始终 | 自评 | 全部 |
-| spell 拼写 | ≥ 30 天 | 自动 | word |
+| flip 翻卡 | 10–30 天；认不出词头的 raw 始终 | 自评 | 全部 |
+| spell 拼写 | ≥ 30 天 | 自动 | word, raw* |
 
 阈值在 settings.json，初始 3 / 10 / 30 天。
+
+\* raw 用推断出的词头和释义出题（干扰项取同模板、词头相近的笔记的释义），揭晓后显示原模板背面；认不出词头的只能翻卡。
 
 每日新卡与复习上限按语言计算（跨卡组共享）；同一 Note 的新卡面每天只出一张（兄弟卡埋藏）。
 
@@ -351,7 +353,7 @@ export function replay(logs: LogEntry[], scheduler: Scheduler): Map<string, Card
 
 .apkg 解析：jszip 解包 → sql.js 读 `collection.anki21`（`anki21b` 先 zstd 解压）。
 
-**预设卡包**：`core/presets.ts` 是目录（名称、语言、简介、大小、sha256、下载地址），只是数据。卡包文件放在本仓库的 GitHub Release（`presets-1`），不进仓库、不进安装包。壳在用户点击时下载到应用缓存目录（不在 Library 里，不进 git），校验 sha256 后按普通 .apkg 导入，卡组名取目录里的名称。更换卡包 = 发新的 Release 并改目录。
+**预设卡包**：`core/presets.ts` 是目录（名称、语言、简介、大小、sha256、下载地址），只是数据。卡包文件放在本仓库的 GitHub Release（`presets-N`，当前 `presets-2`；旧的保留给旧版本），不进仓库、不进安装包。壳在用户点击时下载到应用缓存目录（不在 Library 里，不进 git），校验 sha256 后按普通 .apkg 导入，卡组名取目录里的名称。更换卡包 = 发新的 Release 并改目录。
 
 ## AI 层
 
