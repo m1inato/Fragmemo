@@ -229,7 +229,6 @@ export function Review({ scope, title, onExit }: { scope: ReviewScope; title: st
                     <Icon name="volume" size={item.mode === 'listen' && !revealed ? 30 : 16} />
                   </button>
                 )}
-                {item.mode === 'listen' && !revealed && <p className="prompt-hint">听一听，想想是什么意思</p>}
               </div>
 
               {item.mode === 'choice' && item.choices && (
@@ -272,7 +271,6 @@ export function Review({ scope, title, onExit }: { scope: ReviewScope; title: st
             显示答案 <kbd>Space</kbd>
           </button>
         )}
-        {phase.name === 'ask' && item.mode === 'choice' && <p className="review-hint">选出正确的释义 · 按 1–{item.choices?.length ?? 4}</p>}
         {revealed && phase.correct === false && (
           <div className="verdict verdict-wrong">
             <Icon name="x" />
@@ -324,7 +322,6 @@ function Summary({ title, answered, startedAt, onExit }: { title: string; answer
       <div className="done-mark"><Icon name="check" size={30} /></div>
       <p className="eyebrow">{title}</p>
       <h1>{n ? '这一轮完成了' : '现在没有要复习的卡片'}</h1>
-      <p className="muted">{n ? '记忆会在合适的时候提醒你回来。' : '新的卡片会在到期时出现，明天见。'}</p>
       {n > 0 && (
         <div className="card done-card">
           <div className="done-numbers">

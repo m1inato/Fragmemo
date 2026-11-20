@@ -27,10 +27,8 @@ export function Welcome({ onReady }: { onReady: (s: AppState) => void }) {
       <main className="welcome-main">
         <Mark size={64} />
         <h1 className="welcome-title">Fragmemo</h1>
-        <p className="welcome-lead">把零散的词句，记成长久的记忆。</p>
         <div className="welcome-card">
           <h2>未能打开 Library</h2>
-          <p>选择一个空文件夹新建 Library，或者选择已有的 Library 文件夹。</p>
           <button className="button button-primary" onClick={choose} disabled={busy}>
             {busy ? '正在打开…' : '选择文件夹'}
           </button>

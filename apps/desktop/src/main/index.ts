@@ -1,4 +1,4 @@
-import type { Palette, Theme } from '@fragmemo/ui/api'
+import type { Theme } from '@fragmemo/ui/api'
 import { app, BrowserWindow, ipcMain, nativeTheme, net, protocol, shell, type IpcMainInvokeEvent } from 'electron'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -24,14 +24,14 @@ protocol.registerSchemesAsPrivileged([
 
 let win: BrowserWindow | null = null
 
-const BACKGROUND: Record<Exclude<Theme, 'system'>, string> = { light: '#f9fbfd', dark: '#111418', sepia: '#f6f0e3' }
+const BACKGROUND: Record<Exclude<Theme, 'system'>, string> = { light: '#fcfcfd', dark: '#131315', sepia: '#f6f0e3' }
 
 function background(theme: Theme): string {
   return BACKGROUND[theme === 'system' ? (nativeTheme.shouldUseDarkColors ? 'dark' : 'light') : theme]
 }
 
 function createWindow() {
-  const { theme, palette } = getSettings()
+  const { theme } = getSettings()
   win = new BrowserWindow({
     width: 1120,
     height: 760,
@@ -61,7 +61,7 @@ function createWindow() {
     if (url !== win?.webContents.getURL()) e.preventDefault()
   })
 
-  const query = { theme, palette }
+  const query = { theme }
   if (process.env.ELECTRON_RENDERER_URL) win.loadURL(`${process.env.ELECTRON_RENDERER_URL}?${new URLSearchParams(query)}`)
   else win.loadFile(join(__dirname, '../renderer/index.html'), { query })
 }
@@ -89,7 +89,7 @@ function broadcast(channel: string, payload?: unknown) {
 
 function appState() {
   const s = getSettings()
-  return { libraryPath: lib.libraryRoot(), deviceId: s.deviceId, theme: s.theme, palette: s.palette, version: app.getVersion(), platform: process.platform }
+  return { libraryPath: lib.libraryRoot(), deviceId: s.deviceId, theme: s.theme, version: app.getVersion(), platform: process.platform }
 }
 
 function registerIpc(libraryReady: Promise<void>) {
@@ -97,7 +97,6 @@ function registerIpc(libraryReady: Promise<void>) {
     await libraryReady
     return appState()
   })
-  handle('app:setPalette', (palette: Palette) => void saveSettings({ palette }))
   handle('app:setTheme', (theme: Theme) => {
     saveSettings({ theme })
     win?.setBackgroundColor(background(theme))

@@ -1,11 +1,11 @@
 import type { Lang } from '@fragmemo/core'
 import { useEffect, useState } from 'react'
-import type { AppState, Palette, TaskRecord, Theme } from './api'
+import type { AppState, TaskRecord, Theme } from './api'
 import { Sidebar } from './components/Sidebar'
 import { ToastProvider } from './components/Toast'
 import { api } from './lib/api'
 import { ACTIVITY_DAYS, ShellContext, type GeneratePreset, type Shell, type View } from './lib/shell'
-import { applyPalette, applyTheme } from './lib/theme'
+import { applyTheme } from './lib/theme'
 import { useAsync } from './lib/useAsync'
 import { DeckView } from './pages/DeckView'
 import { Generate } from './pages/Generate'
@@ -35,7 +35,6 @@ export function App() {
   useEffect(() => {
     api.getApp().then((s) => {
       applyTheme(s.theme)
-      applyPalette(s.palette)
       setApp(s)
     })
     return api.onLibraryChanged(() => {
@@ -82,12 +81,6 @@ export function App() {
       applyTheme(theme)
       setApp({ ...app, theme })
       api.setTheme(theme)
-    },
-    palette: app.palette,
-    setPalette: (palette: Palette) => {
-      applyPalette(palette)
-      setApp({ ...app, palette })
-      api.setPalette(palette)
     }
   }
   const close = () => setDialog(null)

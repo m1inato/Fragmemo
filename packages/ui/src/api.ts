@@ -8,14 +8,11 @@ import type {
 // the Electron preload over IPC, the Android WebView directly over core + Capacitor.
 
 export type Theme = 'light' | 'dark' | 'sepia' | 'system'
-/** The accent colour family, independent of light or dark. */
-export type Palette = 'sky' | 'sakura' | 'mint' | 'matcha' | 'plain'
 
 export interface AppState {
   libraryPath: string | null
   deviceId: string
   theme: Theme
-  palette: Palette
   version: string
   platform: string
 }
@@ -86,7 +83,6 @@ export interface Api {
   writeNotebook(root: string, deckId: string | undefined, document: string): Promise<void>
   getApp(): Promise<AppState>
   setTheme(theme: Theme): Promise<void>
-  setPalette(palette: Palette): Promise<void>
   /** Pick or create a Library folder; null when cancelled. */
   chooseLibrary(): Promise<AppState | null>
   revealLibrary(): Promise<void>

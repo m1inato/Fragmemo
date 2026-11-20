@@ -75,10 +75,7 @@ export function QaPanel() {
 
       <div className="panel-body qa-body" lang={lang}>
         {!turns.length && (
-          <div className="panel-empty">
-            <p>问词义、用法、语法区别都可以。</p>
-            <p className="muted">例如：「嬉しい」和「楽しい」有什么区别？</p>
-          </div>
+          <p className="panel-empty muted">例如：「嬉しい」和「楽しい」有什么区别？</p>
         )}
         {turns.map((t, i) => (
           <div key={i} className={`qa-turn qa-${t.role}${t.error ? ' qa-error' : ''}`}>

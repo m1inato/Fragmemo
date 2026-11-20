@@ -66,7 +66,7 @@ export function Home() {
             </div>
             {langs && !decks.length ? (
               <div className="card empty">
-                <p>还没有卡组。从预设卡包开始最快。</p>
+                <p>还没有卡组</p>
                 <div className="hero-actions">
                   <button className="button button-primary" onClick={() => go({ name: 'import', source: 'presets' })}><Icon name="download" />浏览预设卡包</button>
                   <button className="button" onClick={() => openCreateDeck()}><Icon name="plus" />新建空卡组</button>
@@ -107,13 +107,7 @@ function TodayBanner({ langs, words }: { langs: LangSummary[]; words: string[] }
         <h1>
           {!langs.length ? '从一套卡组开始' : left ? <>今天还有 <em>{left}</em> 张</> : '今天的复习完成了'}
         </h1>
-        <p className="banner-sub">
-          {!langs.length
-            ? '导入 Anki 卡包，或者让 AI 按你的水平做一套。'
-            : left
-              ? `待复习 ${due} 张 · 新卡 ${fresh} 张`
-              : '新的卡片明天到期。可以加几张新词，或者回顾一下难记的卡。'}
-        </p>
+        {left > 0 && <p className="banner-sub">待复习 {due} 张 · 新卡 {fresh} 张</p>}
         <div className="banner-actions">
           {ready.map((l, i) => (
             <button key={l.lang} className={`button button-large${i ? '' : ' button-primary'}`} onClick={() => start(l.lang)}>
@@ -159,7 +153,6 @@ function Maker() {
           导入
         </button>
       </div>
-      <p className="maker-hint">AI 按你的学习档案做卡，每条先经代码检查再写入，可以整批撤销。也可以导入 Anki 卡包或粘贴一段原文。</p>
     </div>
   )
 }

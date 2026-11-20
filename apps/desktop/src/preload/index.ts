@@ -25,7 +25,6 @@ const api = {
   writeNotebook: (root, id, doc) => invoke('notebook:write', root, id, doc),
   getApp: () => invoke('app:get'),
   setTheme: (theme) => invoke('app:setTheme', theme),
-  setPalette: (palette) => invoke('app:setPalette', palette),
   chooseLibrary: () => invoke('library:choose'),
   revealLibrary: () => invoke('library:reveal'),
 

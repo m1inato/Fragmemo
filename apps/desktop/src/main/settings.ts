@@ -2,7 +2,7 @@ import { app } from 'electron'
 import { randomBytes } from 'node:crypto'
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { AiProviderId, Palette, Theme } from '@fragmemo/ui/api'
+import type { AiProviderId, Theme } from '@fragmemo/ui/api'
 
 // Settings that belong to this machine, not to the Library: where the Library lives,
 // this device's id for log files, and the window theme. Library-wide settings live in
@@ -12,7 +12,6 @@ export interface LocalSettings {
   libraryPath: string | null
   deviceId: string
   theme: Theme
-  palette: Palette
   ai: StoredAiSettings
 }
 
@@ -32,7 +31,6 @@ const DEFAULT_AI: StoredAiSettings = {
 }
 
 const THEMES: Theme[] = ['light', 'dark', 'sepia', 'system']
-const PALETTES: Palette[] = ['sky', 'sakura', 'mint', 'matcha', 'plain']
 let cache: LocalSettings | null = null
 
 function file() {
@@ -51,7 +49,6 @@ export function getSettings(): LocalSettings {
     libraryPath: typeof raw.libraryPath === 'string' ? raw.libraryPath : null,
     deviceId: typeof raw.deviceId === 'string' && /^mac-[a-z0-9]+$/.test(raw.deviceId) ? raw.deviceId : `mac-${randomBytes(3).toString('hex')}`,
     theme: THEMES.includes(raw.theme as Theme) ? (raw.theme as Theme) : 'system',
-    palette: PALETTES.includes(raw.palette as Palette) ? (raw.palette as Palette) : 'sky',
     ai: mergeAi(DEFAULT_AI, raw.ai)
   }
   if (raw.deviceId !== cache.deviceId) persist(cache)

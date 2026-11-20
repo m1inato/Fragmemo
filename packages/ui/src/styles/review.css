@@ -5,9 +5,7 @@
   --hard: var(--warning);
   --good: var(--primary);
   --easy: var(--positive);
-  background:
-    radial-gradient(ellipse 80% 60% at 50% 0%, hsl(var(--primary) / 0.07), transparent 70%),
-    hsl(var(--background));
+  background: hsl(var(--background));
 }
 
 .review-count {
@@ -395,10 +393,6 @@
   min-width: 220px;
   height: 46px;
   font-size: 15px;
-}
-.review-hint {
-  font-size: 13px;
-  color: hsl(var(--faint-foreground));
 }
 .ratings {
   display: flex;

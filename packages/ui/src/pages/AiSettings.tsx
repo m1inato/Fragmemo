@@ -62,13 +62,12 @@ export function AiSection() {
           </details>
           <details name="model-services">
             <summary><strong>ChatGPT</strong><span>订阅</span><span className={`service-state${codexModels.length ? ' service-found' : ''}`}>{codexModels.length ? '已发现本机 Codex' : '使用本机 Codex'}</span></summary>
-            <p className="service-content settings-hint">复用本机 ChatGPT 或 Codex 的登录状态。首次登录可在终端运行 <code>codex login</code>。</p>
+            <p className="service-content settings-hint">未登录时在终端运行 <code>codex login</code></p>
           </details>
           <details name="model-services">
             <summary><strong>DeepSeek</strong><span>API</span><span className="service-state">{s.deepseek.hasKey ? '已保存 Key' : '配置 Key'}</span></summary>
             <div className="service-content">
               <SecretField label="DeepSeek API Key" isSet={s.deepseek.hasKey} onCommit={key => save({ deepseek: { key } })} />
-              <p className="settings-hint">通过本机 Claude Code 调用。</p>
             </div>
           </details>
           <details name="model-services">
@@ -161,7 +160,6 @@ export function ProfileSection() {
     <section className="settings-section preference-group">
       <h3>学习档案</h3>
       <div className="profile-preference">
-      <p className="settings-hint">AI 每次生成卡片、回答问题都会先读这份档案：母语、水平、目标、偏好，写得越具体越贴合你。</p>
       <div className="segmented">
         {(['ja', 'en'] as Lang[]).map((l) => (
           <button key={l} className={l === lang ? 'active' : ''} onClick={() => setLang(l)}>{LANG_LABELS[l]}</button>

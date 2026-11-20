@@ -1,6 +1,4 @@
-/* Design tokens. Colors are bare HSL triplets so they compose with alpha: hsl(var(--primary) / .2).
-   Light, airy surfaces with a faint tint of the accent hue; white cards with thin borders; one
-   accent colour, picked from a few palettes (data-palette), for primary actions and small marks. */
+/* Design tokens. Colors are bare HSL triplets so they compose with alpha: hsl(var(--primary) / .2). */
 
 /* In Chinese text, dashes and ellipses take the CJK glyphs (——, ……) instead of the Latin font's. */
 @font-face {
@@ -9,58 +7,26 @@
   unicode-range: U+2014, U+2026;
 }
 
-/* Palettes: a hue for surface tints, how strongly to tint, and the accent in light and dark. */
-:root,
-:root[data-palette='sky'] {
-  --p-h: 205;
-  --p-t: 1;
-  --p-accent: 200 75% 46%;
-  --p-accent-dark: 199 88% 72%;
-}
-:root[data-palette='sakura'] {
-  --p-h: 340;
-  --p-t: 0.9;
-  --p-accent: 340 68% 58%;
-  --p-accent-dark: 340 85% 80%;
-}
-:root[data-palette='mint'] {
-  --p-h: 180;
-  --p-t: 0.9;
-  --p-accent: 178 68% 34%;
-  --p-accent-dark: 175 65% 66%;
-}
-:root[data-palette='matcha'] {
-  --p-h: 75;
-  --p-t: 0.9;
-  --p-accent: 95 42% 40%;
-  --p-accent-dark: 82 52% 70%;
-}
-:root[data-palette='plain'] {
-  --p-h: 240;
-  --p-t: 0.12;
-  --p-accent: 240 6% 22%;
-  --p-accent-dark: 240 5% 86%;
-}
-
+/* Light layers with a quiet steel-blue accent, charcoal in dark mode, warm paper for 护眼. The primary
+   action is drawn in the foreground colour; blue is kept for small marks: progress, counts, highlights. */
 :root {
-  --background: var(--p-h) calc(45% * var(--p-t)) 98.6%;
-  --foreground: var(--p-h) calc(25% * var(--p-t)) 13%;
+  --background: 210 33% 99%;
+  --foreground: 240 10% 3.9%;
   --card: 0 0% 100%;
   --popover: 0 0% 100%;
-  --primary: var(--p-accent);
-  --primary-foreground: 0 0% 100%;
-  --muted: var(--p-h) calc(32% * var(--p-t)) 95.6%;
-  --muted-foreground: var(--p-h) calc(12% * var(--p-t)) 36%;
-  --faint-foreground: var(--p-h) calc(8% * var(--p-t)) 54%;
-  --accent: var(--p-h) calc(48% * var(--p-t)) 95%;
-  --border: var(--p-h) calc(30% * var(--p-t)) 89.5%;
-  --destructive: 0 72% 52%;
-  --warning: 32 92% 46%;
-  --positive: 150 50% 36%;
-  --radius: 0.625rem;
-  --shadow: 0 1px 2px hsl(var(--p-h) 30% 20% / 0.04), 0 8px 24px -14px hsl(var(--p-h) 30% 20% / 0.16);
-  --shadow-pop: 0 2px 6px hsl(var(--p-h) 30% 15% / 0.06), 0 22px 56px -18px hsl(var(--p-h) 30% 15% / 0.3);
-  --banner: linear-gradient(120deg, hsl(var(--primary) / 0.16), hsl(var(--primary) / 0.06) 45%, hsl(var(--card) / 0) 85%);
+  --primary: 200 29% 45%;
+  --primary-foreground: 0 0% 98%;
+  --muted: 240 4.8% 95%;
+  --muted-foreground: 240 3.8% 32%;
+  --faint-foreground: 240 3.8% 52%;
+  --accent: 240 4.8% 95.9%;
+  --border: 240 5.9% 88%;
+  --destructive: 0 72% 51%;
+  --warning: 32 92% 44%;
+  --positive: 150 45% 36%;
+  --radius: 0.5rem;
+  --shadow: 0 1px 2px hsl(240 10% 4% / 0.04), 0 8px 24px -12px hsl(240 10% 4% / 0.12);
+  --shadow-pop: 0 2px 6px hsl(240 10% 4% / 0.06), 0 18px 48px -16px hsl(240 10% 4% / 0.28);
 
   --font-ui: 'ZhPunct', 'Outfit Variable', 'PingFang SC', -apple-system, 'Helvetica Neue', sans-serif;
   --font-display: 'ZhPunct', 'Outfit Variable', 'PingFang SC', -apple-system, sans-serif;
@@ -70,35 +36,36 @@
 }
 
 :root[data-theme='dark'] {
-  --background: var(--p-h) calc(16% * var(--p-t)) 7%;
-  --foreground: var(--p-h) calc(20% * var(--p-t)) 93%;
-  --card: var(--p-h) calc(14% * var(--p-t)) 9.6%;
-  --popover: var(--p-h) calc(14% * var(--p-t)) 11%;
-  --primary: var(--p-accent-dark);
-  --primary-foreground: var(--p-h) 30% 10%;
-  --muted: var(--p-h) calc(12% * var(--p-t)) 12.5%;
-  --muted-foreground: var(--p-h) calc(8% * var(--p-t)) 72%;
-  --faint-foreground: var(--p-h) calc(6% * var(--p-t)) 52%;
-  --accent: var(--p-h) calc(14% * var(--p-t)) 15%;
-  --border: var(--p-h) calc(12% * var(--p-t)) 17.5%;
-  --destructive: 0 75% 66%;
+  --background: 240 4% 8%;
+  --foreground: 240 5% 91%;
+  --card: 240 4% 11.5%;
+  --popover: 240 4% 12.5%;
+  --primary: 195 95% 85%;
+  --primary-foreground: 240 3.7% 15.9%;
+  --muted: 240 4% 14%;
+  --muted-foreground: 240 4% 70%;
+  --faint-foreground: 240 4% 52%;
+  --accent: 240 4% 16%;
+  --border: 240 4% 18%;
+  --destructive: 0 70% 60%;
   --warning: 35 90% 62%;
-  --positive: 150 50% 60%;
+  --positive: 150 50% 62%;
   --shadow: 0 1px 2px hsl(0 0% 0% / 0.3), 0 8px 24px -12px hsl(0 0% 0% / 0.5);
-  --shadow-pop: 0 2px 6px hsl(0 0% 0% / 0.3), 0 22px 56px -16px hsl(0 0% 0% / 0.7);
+  --shadow-pop: 0 2px 6px hsl(0 0% 0% / 0.3), 0 18px 48px -16px hsl(0 0% 0% / 0.7);
   color-scheme: dark;
 }
 
-/* 护眼: warm paper, whatever the palette. */
+/* 护眼: warm paper. */
 :root[data-theme='sepia'] {
   --background: 40 36% 93.5%;
   --foreground: 30 18% 13%;
-  --card: 40 40% 96.8%;
+  --card: 40 40% 96.5%;
   --popover: 40 40% 97%;
-  --muted: 38 26% 88.5%;
+  --primary: 200 29% 38%;
+  --muted: 38 26% 88%;
   --muted-foreground: 30 12% 30%;
   --faint-foreground: 30 10% 46%;
-  --accent: 38 28% 88%;
+  --accent: 38 26% 88%;
   --border: 36 20% 80%;
 }
 
@@ -232,21 +199,20 @@ kbd {
   flex: none;
 }
 .button-primary {
-  background: hsl(var(--primary));
-  border-color: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
+  background: hsl(var(--foreground));
+  border-color: hsl(var(--foreground));
+  color: hsl(var(--background));
   font-weight: 500;
-  box-shadow: 0 1px 2px hsl(var(--primary) / 0.2), 0 4px 12px -6px hsl(var(--primary) / 0.5);
 }
 .button-primary:hover:not(:disabled) {
-  background: hsl(var(--primary));
-  border-color: hsl(var(--primary));
-  opacity: 0.9;
+  background: hsl(var(--foreground));
+  border-color: hsl(var(--foreground));
+  opacity: 0.88;
 }
 .button-primary kbd {
-  border-color: hsl(var(--primary-foreground) / 0.35);
+  border-color: hsl(var(--background) / 0.3);
   background: transparent;
-  color: hsl(var(--primary-foreground) / 0.8);
+  color: hsl(var(--background) / 0.7);
 }
 .button-soft {
   background: hsl(var(--primary) / 0.09);
@@ -445,7 +411,7 @@ input[type='checkbox'] {
   background: hsl(var(--card));
   color: hsl(var(--foreground));
   font-weight: 500;
-  box-shadow: 0 1px 2px hsl(var(--p-h) 20% 10% / 0.08), 0 0 0 1px hsl(var(--border));
+  box-shadow: 0 1px 2px hsl(240 10% 4% / 0.08), 0 0 0 1px hsl(var(--border));
 }
 .field > .segmented,
 .modal-body > .segmented {

@@ -89,46 +89,7 @@
   .preferences .preference-group { grid-template-columns: 92px minmax(0, 1fr); gap: 12px; }
 }
 
-.appearance {
-  display: grid;
-  gap: 12px;
-}
 .preference-line > span:first-child {
   min-width: 42px;
   color: hsl(var(--muted-foreground));
-}
-.swatches {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.swatch {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 28px;
-  padding: 0 10px 0 7px;
-  border: 1px solid hsl(var(--border));
-  border-radius: 99px;
-  background: hsl(var(--card));
-  font-size: 12.5px;
-  color: hsl(var(--muted-foreground));
-}
-.swatch i {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-}
-.swatch-sky i { background: hsl(200 75% 46%); }
-.swatch-sakura i { background: hsl(340 68% 58%); }
-.swatch-mint i { background: hsl(178 68% 34%); }
-.swatch-matcha i { background: hsl(95 42% 40%); }
-.swatch-plain i { background: hsl(240 6% 22%); }
-.swatch:hover {
-  color: hsl(var(--foreground));
-}
-.swatch.active {
-  border-color: hsl(var(--primary) / 0.5);
-  color: hsl(var(--foreground));
-  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
 }

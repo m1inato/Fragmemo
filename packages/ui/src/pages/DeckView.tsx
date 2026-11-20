@@ -30,7 +30,7 @@ export function DeckView({ deckId }: { deckId: string }) {
     .map((n) => n.id)
 
   async function runTask(input: TaskInput, what: string) {
-    if (!window.confirm(`${what}？\n改动会先经过检查，之后可以整批撤销。`)) return
+    if (!window.confirm(`${what}？`)) return
     await toast.track(api.createTask(input), { pending: '正在加入任务队列…', done: '已加入任务队列' }).catch(() => {})
     setPanel('tasks')
   }
@@ -136,7 +136,7 @@ export function DeckView({ deckId }: { deckId: string }) {
             </label>
           </div>
 
-          {rows && !rows.length && <div className="card empty">还没有笔记。添加一条，或者让 AI 补一些进来。</div>}
+          {rows && !rows.length && <div className="card empty">还没有笔记</div>}
           {filtered.length > 0 && (
             <div className="card note-list">
               {filtered.slice(0, shown).map(({ note, title, detail }) => (

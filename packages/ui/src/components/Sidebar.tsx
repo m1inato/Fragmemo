@@ -71,7 +71,7 @@ export function Sidebar() {
         <div className="side-streak">
           <Icon name="flame" />
           <div>
-            <b>{activity.streak ? `连续 ${activity.streak} 天` : '今天开始吧'}</b>
+            <b>连续 {activity.streak} 天</b>
             <span>今日复习 {today} 次</span>
           </div>
           <div className="side-week" aria-hidden>

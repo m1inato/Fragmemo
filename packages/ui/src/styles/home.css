@@ -11,19 +11,8 @@
   overflow: hidden;
   border: 1px solid hsl(var(--border));
   border-radius: calc(var(--radius) + 6px);
-  background:
-    radial-gradient(circle at 1px 1px, hsl(var(--primary) / 0.13) 1px, transparent 0) 0 0 / 18px 18px,
-    var(--banner),
-    hsl(var(--card));
+  background: hsl(var(--card));
   box-shadow: var(--shadow);
-}
-.banner::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, hsl(var(--card)) 30%, hsl(var(--card) / 0) 75%);
-  opacity: 0.55;
-  pointer-events: none;
 }
 .banner-copy {
   position: relative;
@@ -64,7 +53,7 @@
   font-variant-numeric: tabular-nums;
 }
 .button-primary .banner-count {
-  background: hsl(var(--primary-foreground) / 0.22);
+  background: hsl(var(--background) / 0.2);
 }
 .banner-stack {
   position: relative;
@@ -250,11 +239,6 @@
 .maker-go {
   height: 40px;
   padding: 0 16px;
-}
-.maker-hint {
-  margin: 10px 2px 0;
-  font-size: 12px;
-  color: hsl(var(--faint-foreground));
 }
 
 .home-foot {

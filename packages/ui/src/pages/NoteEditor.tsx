@@ -118,7 +118,7 @@ function RawNoteView({ deck, note, onClose }: { deck: DeckMeta; note: Extract<No
         </>
       }
     >
-      <p className="modal-text">从 Anki 导入的笔记按原模板「{note.template}」显示，字段保持原样。</p>
+      <p className="modal-text">模板：{note.template}</p>
       <dl className="raw-fields">
         {Object.entries(note.fields).map(([k, v]) => (
           <div key={k}>

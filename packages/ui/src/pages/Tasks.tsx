@@ -13,7 +13,7 @@ export function TasksPanel() {
   const { tasks } = useShell()
   return (
     <div className="panel-body">
-      {!tasks.length && <p className="panel-empty">还没有 AI 任务。在首页描述想学的内容开始。</p>}
+      {!tasks.length && <p className="panel-empty">还没有任务</p>}
       {tasks.map((t) => <TaskItem key={t.id} task={t} />)}
     </div>
   )

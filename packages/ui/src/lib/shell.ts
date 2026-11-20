@@ -1,6 +1,6 @@
 import type { Lang, LangSummary, ReviewScope, StudyActivity } from '@fragmemo/core'
 import { createContext, useContext } from 'react'
-import type { Palette, Theme, TaskRecord } from '../api'
+import type { Theme, TaskRecord } from '../api'
 
 /** What the Generate dialog opens with: a tab and, optionally, a target deck. */
 export interface GeneratePreset {
@@ -44,8 +44,6 @@ export interface Shell {
   mac: boolean
   theme: Theme
   setTheme(t: Theme): void
-  palette: Palette
-  setPalette(p: Palette): void
 }
 
 export const ShellContext = createContext<Shell | null>(null)

@@ -27,10 +27,7 @@ export function ImportPage({ view, onImported }: { view: Extract<View, { name: '
       <div className="page-scroll">
         <main className="page-inner">
           <section className="hero import-hero">
-            <div>
-              <h1>导入</h1>
-              <p className="stats">现成的卡包、自己的 Anki 卡包，或者一段原文交给 AI 整理。</p>
-            </div>
+            <h1>导入</h1>
             <div className="segmented" role="tablist" aria-label="导入来源">
               {SOURCES.map((s) => (
                 <button key={s.id} role="tab" className={source === s.id ? 'active' : ''} aria-selected={source === s.id} onClick={() => setSource(s.id)}>{s.label}</button>
@@ -40,10 +37,6 @@ export function ImportPage({ view, onImported }: { view: Extract<View, { name: '
           {source === 'presets' && <Presets onImported={onImported} />}
           {source === 'anki' && <AnkiImport onImported={onImported} />}
           <div hidden={source !== 'text'}>
-            <div className="import-note">
-              <Icon name="sparkles" />
-              <p>一行一个词组，或者直接粘贴文章、歌词、对话。AI 会挑出值得学的词和语法，检查后写进卡组，可以整批撤销。</p>
-            </div>
             <Generate preset={{ tab: 'extract-from-text', lang: view.lang, text: view.text }} onCreated={() => setPanel('tasks')} />
           </div>
         </main>
@@ -112,7 +105,6 @@ function Presets({ onImported }: { onImported: (deckId: string) => void }) {
           </article>
         )
       })}
-      <p className="preset-foot faint">卡包来自社区分享，按需从 GitHub 下载，下载后校验完整性。导入后和自己的卡组一样，可以改名、编辑、交给 AI 转成标准卡片。</p>
     </div>
   )
 }
@@ -139,10 +131,9 @@ function AnkiImport({ onImported }: { onImported: (deckId: string) => void }) {
     <section className="card anki-drop">
       <div className="anki-icon"><Icon name="file" size={26} /></div>
       <h3>选择 .apkg 或 .colpkg 文件</h3>
-      <p className="muted">保留原来的模板、图片和音频；再次导入同一个卡包会更新卡片，不会重复。</p>
       <label className="check">
         <input type="checkbox" checked={withHistory} disabled={busy} onChange={(e) => setWithHistory(e.target.checked)} />
-        同时导入复习记录，接着 Anki 的进度学
+        同时导入复习记录
       </label>
       <button className="button button-primary button-large" onClick={run} disabled={busy}>
         <Icon name="folder" />

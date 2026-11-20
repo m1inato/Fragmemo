@@ -11,11 +11,11 @@ import { useAsync } from '../lib/useAsync'
 
 type Tab = NonNullable<GeneratePreset['tab']>
 
-const TABS: { id: Tab; label: string; hint: string }[] = [
-  { id: 'generate-deck', label: '生成卡组', hint: '描述想学什么，AI 按你的学习档案做卡片。' },
-  { id: 'extract-from-text', label: '从文本提取', hint: '粘贴词组或原文，AI 会提取词汇和语法，整理成卡片。' },
-  { id: 'process-inbox', label: '整理收藏', hint: '把手机上收藏的词句整理成卡片。' },
-  { id: 'leech-helper', label: '攻克难记卡', hint: '找出反复遗忘的卡片，补上更好记的例句和提示。' }
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'generate-deck', label: '生成卡组' },
+  { id: 'extract-from-text', label: '从文本提取' },
+  { id: 'process-inbox', label: '整理收藏' },
+  { id: 'leech-helper', label: '攻克难记卡' }
 ]
 
 export function Generate({ preset, onClose, onCreated }: { preset: GeneratePreset; onClose?: () => void; onCreated: () => void }) {
@@ -62,7 +62,6 @@ export function Generate({ preset, onClose, onCreated }: { preset: GeneratePrese
     }
   }
 
-  const hint = TABS.find((t) => t.id === tab)!.hint
   const fields = (
     <div className="editor-grid">
       {tab === 'extract-from-text' && (
@@ -131,7 +130,6 @@ export function Generate({ preset, onClose, onCreated }: { preset: GeneratePrese
       onClose={onClose}
       footer={
         <>
-          <span className="modal-footnote">所有改动都会先经过代码检查，可以整批撤销。</span>
           <span className="spacer" />
           <button className="button" onClick={onClose}>取消</button>
           {action}
@@ -143,7 +141,6 @@ export function Generate({ preset, onClose, onCreated }: { preset: GeneratePrese
           <button key={t.id} className={t.id === tab ? 'active' : ''} onClick={() => setTab(t.id)}>{t.label}</button>
         ))}
       </div>
-      <p className="modal-text">{hint}</p>
       {fields}
     </Modal>
   )

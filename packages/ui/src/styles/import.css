@@ -57,11 +57,6 @@
   margin-top: auto;
   padding-top: 6px;
 }
-.preset-foot {
-  grid-column: 1 / -1;
-  margin-top: 6px;
-  font-size: 12px;
-}
 
 .anki-drop {
   display: flex;
@@ -76,10 +71,6 @@
 .anki-drop h3 {
   font-size: 17px;
 }
-.anki-drop .muted {
-  max-width: 440px;
-  font-size: 13px;
-}
 .anki-drop .check {
   margin: 6px 0 4px;
 }
@@ -93,20 +84,6 @@
   color: hsl(var(--primary));
 }
 
-.import-note {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  margin-bottom: 14px;
-  padding: 12px 14px;
-  border-radius: var(--radius);
-  background: hsl(var(--primary) / 0.07);
-  color: hsl(var(--primary));
-  font-size: 13px;
-}
-.import-note p {
-  color: hsl(var(--foreground) / 0.8);
-}
 .import-card {
   display: grid;
   gap: 14px;

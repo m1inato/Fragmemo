@@ -1,16 +1,16 @@
 import type { Settings } from '@fragmemo/core'
 import { useEffect, useState } from 'react'
-import type { AppState, Palette, Theme } from '../api'
+import type { AppState, Theme } from '../api'
 import { Modal } from '../components/Modal'
 import { useToast } from '../components/Toast'
 import { api } from '../lib/api'
 import { useShell } from '../lib/shell'
-import { PALETTE_LABELS, THEME_LABELS } from '../lib/theme'
+import { THEME_LABELS } from '../lib/theme'
 import { AiSection, ProfileSection } from './AiSettings'
 
 export function SettingsModal({ app, onApp, onClose }: { app: AppState; onApp: (s: AppState) => void; onClose: () => void }) {
   const toast = useToast()
-  const { setTheme, setPalette } = useShell()
+  const { setTheme } = useShell()
   const [settings, setSettings] = useState<Settings | null>(null)
 
   useEffect(() => {
@@ -48,25 +48,12 @@ export function SettingsModal({ app, onApp, onClose }: { app: AppState; onApp: (
       </section>
       <section className="settings-section preference-group">
         <h3>外观</h3>
-        <div className="appearance">
-          <div className="preference-line">
-            <span>主题</span>
-            <div className="segmented">
-              {(Object.keys(THEME_LABELS) as Theme[]).map(th => (
-                <button key={th} className={app.theme === th ? 'active' : ''} aria-pressed={app.theme === th} onClick={() => setTheme(th)}>{THEME_LABELS[th]}</button>
-              ))}
-            </div>
-          </div>
-          <div className="preference-line">
-            <span>主题色</span>
-            <div className="swatches">
-              {(Object.keys(PALETTE_LABELS) as Palette[]).map((p) => (
-                <button key={p} className={`swatch swatch-${p}${app.palette === p ? ' active' : ''}`} aria-pressed={app.palette === p} title={PALETTE_LABELS[p]} onClick={() => setPalette(p)}>
-                  <i />
-                  {PALETTE_LABELS[p]}
-                </button>
-              ))}
-            </div>
+        <div className="preference-line">
+          <span>主题</span>
+          <div className="segmented">
+            {(Object.keys(THEME_LABELS) as Theme[]).map(th => (
+              <button key={th} className={app.theme === th ? 'active' : ''} aria-pressed={app.theme === th} onClick={() => setTheme(th)}>{THEME_LABELS[th]}</button>
+            ))}
           </div>
         </div>
       </section>
@@ -80,7 +67,7 @@ export function SettingsModal({ app, onApp, onClose }: { app: AppState; onApp: (
               <NumberField label="一天从几点开始" value={settings.review.dayStartHour} min={0} max={23} onCommit={(v) => saveReview({ dayStartHour: v })} />
               <NumberField label="目标记忆率 %" value={Math.round(settings.fsrs.desiredRetention * 100)} min={70} max={99} onCommit={(v) => saveFsrs({ desiredRetention: v / 100 })} />
             </div>
-            <p className="settings-hint">作答模式按记忆稳定度自动切换（天）：</p>
+            <p className="settings-hint">作答模式切换（稳定度，天）</p>
             <div className="thresholds">
               <span>选择</span>
               <NumberField value={t[0]} min={0} max={t[1]} onCommit={(v) => saveReview({ modeThresholds: [v, t[1], t[2]] })} />

@@ -59,7 +59,7 @@
   z-index: 1;
   margin: 0 -12px 6px;
   padding: 20px 20px 18px;
-  background: linear-gradient(hsl(var(--background)), hsl(var(--background) / 0));
+  background: color-mix(in srgb, hsl(var(--muted)) 45%, hsl(var(--background)));
   -webkit-app-region: drag;
 }
 .is-mac .sidebar-brand {
@@ -127,7 +127,7 @@
   background: hsl(var(--card));
   color: hsl(var(--foreground));
   font-weight: 500;
-  box-shadow: 0 1px 2px hsl(var(--p-h) 20% 10% / 0.06), 0 0 0 1px hsl(var(--border));
+  box-shadow: 0 1px 2px hsl(240 10% 4% / 0.06), 0 0 0 1px hsl(var(--border));
 }
 .side-item.on i {
   color: hsl(var(--primary));
@@ -360,7 +360,7 @@ input.bare {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: hsl(var(--p-h) 20% 6% / 0.3);
+  background: hsl(240 10% 4% / 0.32);
   backdrop-filter: blur(4px);
   animation: fade 0.18s ease both;
 }

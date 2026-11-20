@@ -54,7 +54,7 @@ export function Library() {
             </button>
           </div>
 
-          {langs && !decks.length && <p className="card empty">{all.length ? '没有匹配的卡组。' : '还没有卡组。导入一套卡包，或者新建一个。'}</p>}
+          {langs && !decks.length && <p className="card empty">{all.length ? '没有匹配的卡组' : '还没有卡组'}</p>}
           <div className="deck-grid">
             {decks.map((d) => <DeckCard key={d.id} deck={d} />)}
           </div>
