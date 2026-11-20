@@ -142,6 +142,14 @@ describe.each([
     expect(due.map((c) => c.cardId)).toEqual([`${neko.id}:0`, expect.stringMatching(/:0$/)])
   })
 
+  it('takes a given deck name and lists notes by their headword', async () => {
+    const { lib } = testLibrary()
+    const { deck } = await lib.importApkg(await build(), { name: ' N5 动物 ' })
+    expect(deck.name).toBe('N5 动物')
+    const rows = await lib.noteRows(deck.id)
+    expect(rows.map((r) => [r.title, r.detail])).toEqual([['猫', 'cat'], ['犬', 'dog']])
+  })
+
   it('re-imports idempotently and maps the revlog onto the same cards', async () => {
     const { lib } = testLibrary()
     const bytes = await build()

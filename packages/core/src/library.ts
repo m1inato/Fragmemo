@@ -2,7 +2,7 @@ import type { AnkiCollection, SqlLoader } from './anki/apkg'
 import { decodeEntities } from './anki/template'
 import { pickDistractors } from './distractors'
 import { pickMode } from './modes'
-import { cardFaces, cardIdOf, noteTitle, noteKey, parseCardId } from './notes'
+import { cardFaces, cardIdOf, noteDetail, noteTitle, noteKey, parseCardId, rawDisplay, type RawDisplay } from './notes'
 import { normalizeRelative, paths, toSegment } from './paths'
 import type { Clock, Ids, Storage, SyncBackend } from './platform'
 import { applyReview, createScheduler, effectiveReviews, replay, type Scheduler } from './replay'
@@ -30,6 +30,8 @@ export interface DeckSummary extends DeckMeta {
   due: number
   /** New cards this deck can still introduce today, within the language's daily limit. */
   fresh: number
+  /** A headword from the deck, for its cover. */
+  sample?: string
 }
 
 /** Daily limits apply per language, so totals are not simply the sum of the decks. */
@@ -43,9 +45,15 @@ export interface LangSummary {
 }
 
 export interface StudyActivity {
+  /** Oldest first, ending today. */
   days: { date: string; count: number }[]
+  /** Consecutive days with reviews, ending today (or yesterday, before today's first review). */
+  streak: number
   recent: { id: string; term: string; deckId: string; deckName: string; at: number }[]
 }
+
+/** A note as a deck's list shows it. */
+export interface NoteRow { note: Note; title: string; detail: string }
 
 export interface ImportResult { deck: DeckMeta; added: number; updated: number }
 
@@ -54,11 +62,14 @@ export interface Library {
   saveSettings(patch: SettingsPatch): Promise<Settings>
 
   listDecks(): Promise<DeckMeta[]>
-  studyActivity(): Promise<StudyActivity>
+  /** Effective reviews per learning day over the last `days` days, and the latest words studied. */
+  studyActivity(days?: number): Promise<StudyActivity>
   overview(): Promise<LangSummary[]>
   getDeck(deckId: string): Promise<DeckMeta | null>
   createDeck(o: { name: string; lang: Lang; tags?: string[]; source?: DeckMeta['source'] }): Promise<DeckMeta>
+  renameDeck(deckId: string, name: string): Promise<DeckMeta>
   getNotes(deckId: string): Promise<Note[]>
+  noteRows(deckId: string): Promise<NoteRow[]>
   upsertNotes(deckId: string, notes: Note[]): Promise<void>
   findByKey(key: string): Promise<{ deckId: string; note: Note } | null>
   getTemplate(deckId: string, name: string): Promise<RawTemplate | null>
@@ -83,7 +94,8 @@ export interface Library {
   /** The learner profile for a language (`profile.<lang>.md`), injected into every AI call. */
   profile(lang: Lang): Promise<string>
   saveProfile(lang: Lang, text: string): Promise<void>
-  importApkg(bytes: Uint8Array): Promise<ImportResult>
+  /** `name` replaces the package's own deck name for a new deck. */
+  importApkg(bytes: Uint8Array, o?: { name?: string }): Promise<ImportResult>
   importRevlog(bytes: Uint8Array): Promise<number>
   importDeckFolder(files: Map<string, Uint8Array>): Promise<ImportResult>
 
@@ -92,7 +104,13 @@ export interface Library {
   commit(message: string): Promise<string | null>
 }
 
-interface DeckData { meta: DeckMeta; notes: Note[]; templates: Map<string, RawTemplate> }
+interface DeckData {
+  meta: DeckMeta
+  notes: Note[]
+  templates: Map<string, RawTemplate>
+  /** Per raw template, derived from the notes on first use and dropped on every write. */
+  display?: Map<string, RawDisplay>
+}
 
 interface State {
   settings: Settings
@@ -153,9 +171,7 @@ export function createLibrary(deps: LibraryDeps): Library {
       const tpl = await readTemplate(id, name)
       if (tpl) templates.set(name, tpl)
     }
-    const meta = parsed.data
-    if (meta.source === 'apkg') meta.name = importedDeckName(meta.name)
-    return { meta, notes, templates }
+    return { meta: parsed.data, notes, templates }
   }
 
   async function readTemplate(deckId: string, name: string): Promise<RawTemplate | null> {
@@ -193,8 +209,25 @@ export function createLibrary(deps: LibraryDeps): Library {
   }
 
   async function writeDeck(deck: DeckData) {
+    deck.display = undefined
     await storage.writeText(paths.deckMeta(deck.meta.id), JSON.stringify(deck.meta, null, 2) + '\n')
     await storage.writeText(paths.notes(deck.meta.id), toJsonl(deck.notes))
+  }
+
+  function displayOf(deck: DeckData, note: Note): RawDisplay | undefined {
+    if (note.type !== 'raw') return undefined
+    deck.display ??= new Map()
+    let d = deck.display.get(note.template)
+    if (!d) {
+      const notes = deck.notes.filter((n): n is RawNote => n.type === 'raw' && !n.deleted && n.template === note.template)
+      deck.display.set(note.template, (d = rawDisplay(deck.templates.get(note.template), notes)))
+    }
+    return d
+  }
+
+  function sampleTitle(deck: DeckData): string | undefined {
+    const note = deck.notes.find((n) => !n.deleted)
+    return note ? noteTitle(note, displayOf(deck, note)).slice(0, 12) || undefined : undefined
   }
 
   function locate(s: State, cardId: string): { deck: DeckData; note: Note; face: number } | null {
@@ -286,7 +319,7 @@ export function createLibrary(deps: LibraryDeps): Library {
     return id
   }
 
-  async function importCollection(s: State, col: AnkiCollection): Promise<ImportResult> {
+  async function importCollection(s: State, col: AnkiCollection, name?: string): Promise<ImportResult> {
     // Media is content-addressed: identical files across decks and re-imports collapse.
     const mediaNames = new Map<string, string>()
     const mediaFiles = new Map<string, Uint8Array>()
@@ -327,8 +360,8 @@ export function createLibrary(deps: LibraryDeps): Library {
     const now = clock.now()
     const deck: DeckData = target ?? {
       meta: {
-        id: await newDeckId(s, mainDeckName(col)),
-        name: importedDeckName(mainDeckName(col)),
+        id: await newDeckId(s, name || mainDeckName(col)),
+        name: name?.trim() || mainDeckName(col),
         lang: guessLang(col),
         version: 1,
         tags: [],
@@ -406,26 +439,26 @@ export function createLibrary(deps: LibraryDeps): Library {
       return [...(await state()).decks.values()].map((d) => d.meta).sort((a, b) => a.name.localeCompare(b.name))
     },
 
-    async studyActivity() {
+    async studyActivity(span = 7) {
       const s = await state()
       const hour = s.settings.review.dayStartHour
       const today = new Date(dayStart(clock.now(), hour))
-      const days = Array.from({ length: 7 }, (_, i) => {
+      const days = Array.from({ length: span }, (_, i) => {
         const date = new Date(today)
-        date.setDate(date.getDate() - 6 + i)
+        date.setDate(date.getDate() - span + 1 + i)
         return { date: isoDate(date.getTime()), count: 0 }
       })
-      const byDate = new Map(days.map(day => [day.date, day]))
-      const notes = new Map<string, { note: Note; deck: DeckMeta }>()
-      for (const { notes: entries, meta } of s.decks.values()) {
-        for (const note of entries) {
-          if (!note.deleted && (note.type === 'word' || note.type === 'raw')) notes.set(note.id, { note, deck: meta })
+      const byDate = new Map(days.map((day) => [day.date, day]))
+      const notes = new Map<string, { note: Note; deck: DeckData }>()
+      for (const deck of s.decks.values()) {
+        for (const note of deck.notes) {
+          if (!note.deleted && (note.type === 'word' || note.type === 'raw')) notes.set(note.id, { note, deck })
         }
       }
       const recent: StudyActivity['recent'] = []
       const seen = new Set<string>()
       const first = new Date(today)
-      first.setDate(first.getDate() - 6)
+      first.setDate(first.getDate() - span + 1)
       for (const review of effectiveReviews(s.logs).reverse()) {
         if (review.reviewedAt < first.getTime() && (recent.length === 8 || seen.size === notes.size)) break
         const day = byDate.get(isoDate(dayStart(review.reviewedAt, hour)))
@@ -435,10 +468,12 @@ export function createLibrary(deps: LibraryDeps): Library {
         const entry = notes.get(noteId)
         if (!entry || seen.has(noteId)) continue
         seen.add(noteId)
-        const term = noteTitle(entry.note).trim()
-        if (term) recent.push({ id: noteId, term, deckId: entry.deck.id, deckName: entry.deck.name, at: review.reviewedAt })
+        const term = noteTitle(entry.note, displayOf(entry.deck, entry.note)).trim()
+        if (term) recent.push({ id: noteId, term, deckId: entry.deck.meta.id, deckName: entry.deck.meta.name, at: review.reviewedAt })
       }
-      return { days, recent }
+      let streak = 0
+      for (let i = days.length - 1 - (days.at(-1)?.count ? 0 : 1); i >= 0 && days[i].count; i--) streak++
+      return { days, streak, recent }
     },
 
     async overview() {
@@ -459,8 +494,9 @@ export function createLibrary(deps: LibraryDeps): Library {
           learned: sum((r) => r.learned),
           due: Math.min(sum((r) => r.due.length), reviewLeft),
           fresh: Math.min(sum((r) => r.fresh.length), newLeft),
-          decks: scans.map((r) => ({
-            ...r.meta, notes: r.notes, cards: r.cards, learned: r.learned, due: r.due.length, fresh: Math.min(r.fresh.length, newLeft)
+          decks: scans.map((r, i) => ({
+            ...r.meta, notes: r.notes, cards: r.cards, learned: r.learned, due: r.due.length, fresh: Math.min(r.fresh.length, newLeft),
+            sample: sampleTitle(decks[i])
           }))
         })
       }
@@ -488,8 +524,26 @@ export function createLibrary(deps: LibraryDeps): Library {
       return meta
     }),
 
+    renameDeck: (deckId, name) => serial(async () => {
+      const deck = (await state()).decks.get(deckId)
+      if (!deck) throw new Error(`no such deck: ${deckId}`)
+      // Only the display name changes; the id (and so every path) stays.
+      deck.meta = deckMetaSchema.parse({ ...deck.meta, name: name.trim() })
+      await storage.writeText(paths.deckMeta(deckId), JSON.stringify(deck.meta, null, 2) + '\n')
+      return deck.meta
+    }),
+
     async getNotes(deckId) {
       return ((await state()).decks.get(deckId)?.notes ?? []).filter((n) => !n.deleted)
+    },
+
+    async noteRows(deckId) {
+      const deck = (await state()).decks.get(deckId)
+      if (!deck) return []
+      return deck.notes.filter((n) => !n.deleted).map((note) => {
+        const display = displayOf(deck, note)
+        return { note, title: noteTitle(note, display), detail: noteDetail(note, display) }
+      })
     },
 
     upsertNotes: (deckId, notes) => serial(async () => {
@@ -641,7 +695,7 @@ export function createLibrary(deps: LibraryDeps): Library {
 
     saveProfile: (lang, text) => serial(() => storage.writeText(paths.profile(lang), text.trim() + '\n')),
 
-    importApkg: (bytes) => serial(async () => importCollection(await state(), await readApkg(bytes))),
+    importApkg: (bytes, o) => serial(async () => importCollection(await state(), await readApkg(bytes), o?.name)),
 
     importRevlog: (bytes) => serial(async () => {
       const s = await state()
@@ -742,11 +796,6 @@ function parseJson(text: string | null): unknown {
 }
 
 /** The deck most cards belong to, ignoring Anki's catch-all "Default". */
-// This package contains every JLPT level, which Fragmemo imports into one deck.
-function importedDeckName(name: string): string {
-  return name === 'NEW-JLPT · eggrolls-JLPT10k-v3.5 · 5-N1 · 3-低频' ? 'JLPT N1～N5 一万词 v3.5' : name
-}
-
 function mainDeckName(col: AnkiCollection): string {
   const counts = new Map<string, number>()
   for (const c of col.cards) {

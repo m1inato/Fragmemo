@@ -97,7 +97,8 @@ export function speechText(note: Note): string {
   }
 }
 
-export function noteTitle(note: Note): string {
+/** `display` names an Anki note type's headword and gloss fields; see rawDisplay. */
+export function noteTitle(note: Note, display?: RawDisplay): string {
   switch (note.type) {
     case 'word':
       return note.fields.term
@@ -106,9 +107,66 @@ export function noteTitle(note: Note): string {
     case 'grammar':
       return note.fields.pattern
     case 'raw':
-      return stripHtml(note.fields.VocabKanji || note.fields.VocabFurigana || note.fields.word || Object.values(note.fields)[0] || '')
+      return firstText(note, display?.title ?? Object.keys(note.fields))
   }
 }
+
+/** The one-line gloss shown under a note's title in lists. */
+export function noteDetail(note: Note, display?: RawDisplay): string {
+  return note.type === 'raw' ? firstText(note, display?.detail ?? Object.keys(note.fields).slice(1)) : answerText(note, 0)
+}
+
+function firstText(note: RawNote, fields: string[]): string {
+  for (const f of fields) {
+    const text = stripHtml(note.fields[f] ?? '')
+    if (text) return text
+  }
+  return ''
+}
+
+/** Candidate fields, best first, for a raw note's headword and gloss. */
+export interface RawDisplay { title: string[]; detail: string[] }
+
+// Anki decks name their fields freely and their sort field is often a list or an id, so the
+// headword is inferred: a short, mostly unique field shown on the front of the first card.
+// The gloss is the first such field that only the back shows.
+export function rawDisplay(tpl: RawTemplate | undefined, notes: RawNote[]): RawDisplay {
+  const sample = notes.slice(0, 300)
+  const names = Object.keys(sample[0]?.fields ?? {})
+  const stats = new Map(names.map((f) => {
+    const texts = sample.map((n) => stripHtml(n.fields[f] ?? '')).filter(Boolean)
+    return [f, {
+      filled: texts.length / Math.max(1, sample.length),
+      distinct: new Set(texts).size / Math.max(1, texts.length),
+      length: texts.reduce((n, t) => n + t.length, 0) / Math.max(1, texts.length),
+      numeric: texts.filter((t) => /^[\d\s.:-]+$/.test(t)).length / Math.max(1, texts.length)
+    }]
+  }))
+  const usable = (f: string, minDistinct: number) => {
+    const s = stats.get(f)
+    return !!s && s.filled >= 0.5 && s.distinct >= minDistinct && s.numeric < 0.5
+  }
+  const card = tpl?.cards[0]
+  const front = card ? fieldRefs(card.front).filter((f) => stats.has(f)) : []
+  const back = card ? fieldRefs(card.back).filter((f) => stats.has(f) && !front.includes(f)) : []
+  const short = (f: string) => usable(f, 0.6) && stats.get(f)!.length <= 40
+  const title = [...front.filter(short), ...names.filter(short)]
+  const detail = [...back, ...names].filter((f) => f !== title[0] && usable(f, 0.3))
+  return { title: unique(title.length ? title : names), detail: unique(detail) }
+}
+
+/** Field names a template prints, in order; section tags and special fields are skipped. */
+function fieldRefs(html: string): string[] {
+  const special = new Set(['FrontSide', 'Tags', 'Deck', 'Subdeck', 'Card', 'CardFlag', 'Type'])
+  const out: string[] = []
+  for (const [, inner] of html.matchAll(/\{\{([^#^/!{}][^{}]*)\}\}/g)) {
+    const name = inner.split(':').pop()!.trim()
+    if (name && !special.has(name)) out.push(name)
+  }
+  return out
+}
+
+const unique = (xs: string[]) => [...new Set(xs)]
 
 export function stripHtml(html: string): string {
   return html

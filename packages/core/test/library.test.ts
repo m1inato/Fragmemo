@@ -37,7 +37,17 @@ describe('library', () => {
     await lib.undo()
     const activity = await lib.studyActivity()
     expect(activity.days.map(day => day.count)).toEqual([0, 0, 0, 0, 0, 1, 2])
+    expect(activity.streak).toBe(2)
+    expect((await lib.studyActivity(30)).days).toHaveLength(30)
     expect(activity.recent.map(item => item.term)).toEqual(['悲しい', '嬉しい'])
+  })
+
+  it('renames a deck without moving it', async () => {
+    const { lib, mem, deck } = await seeded(1)
+    const renamed = await lib.renameDeck(deck.id, '  情绪形容词 ')
+    expect(renamed).toMatchObject({ id: deck.id, name: '情绪形容词' })
+    expect(JSON.parse((await mem.storage.readText(`decks/${deck.id}/deck.json`))!).name).toBe('情绪形容词')
+    expect((await lib.listDecks()).map((d) => d.name)).toEqual(['情绪形容词'])
   })
 
   it('writes decks as plain files', async () => {
