@@ -143,14 +143,14 @@
   text-align: center;
 }
 .prompt-term {
-  font: 600 56px/1.2 var(--font-display);
+  font: 600 64px/1.2 var(--font-display);
   letter-spacing: 0.02em;
 }
 .is-revealed .prompt-term {
   font-size: 44px;
 }
 .prompt-meaning {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 500;
   line-height: 1.5;
 }
@@ -207,23 +207,23 @@
   list-style: none;
   margin: 0 auto;
   padding: 0;
-  width: min(560px, 100%);
+  width: min(620px, 100%);
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 12px;
 }
 .choice {
   display: flex;
   align-items: center;
   gap: 12px;
   width: 100%;
-  min-height: 52px;
-  padding: 10px 14px;
+  min-height: 58px;
+  padding: 12px 16px;
   border-radius: 12px;
   border: 1px solid hsl(var(--border));
   background: hsl(var(--background));
   color: hsl(var(--foreground));
-  font: 15px var(--font-ui);
+  font: 16px var(--font-ui);
   text-align: left;
   cursor: default;
   transition: border-color 0.12s, background 0.12s, opacity 0.2s, transform 0.12s;
@@ -390,8 +390,8 @@
   min-height: 78px;
 }
 .reveal {
-  min-width: 220px;
-  height: 46px;
+  min-width: 240px;
+  height: 50px;
   font-size: 15px;
 }
 .ratings {
@@ -399,7 +399,7 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  width: min(620px, 100%);
+  width: min(680px, 100%);
   animation: rise 0.2s ease-out both;
 }
 .rating-row {
@@ -416,7 +416,7 @@
   flex-direction: column;
   align-items: center;
   gap: 1px;
-  padding: 10px 0 9px;
+  padding: 13px 0 12px;
   border-radius: 12px;
   border: 1px solid hsl(var(--c) / 0.3);
   background: hsl(var(--c) / 0.06);
@@ -439,7 +439,7 @@
   background: transparent;
 }
 .rating-label {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: hsl(var(--c));
 }

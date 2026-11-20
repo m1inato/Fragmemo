@@ -4,7 +4,7 @@ import { useShell, type View } from '../lib/shell'
 import { Icon, Mark, type IconName } from './Icon'
 
 const PAGES: { name: 'home' | 'library' | 'import'; label: string; icon: IconName }[] = [
-  { name: 'home', label: '今天', icon: 'home' },
+  { name: 'home', label: '日课', icon: 'home' },
   { name: 'library', label: '全部卡组', icon: 'layers' },
   { name: 'import', label: '导入', icon: 'download' }
 ]

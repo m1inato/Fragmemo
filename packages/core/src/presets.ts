@@ -15,7 +15,7 @@ export interface PresetDeck {
   url: string
 }
 
-const RELEASE = 'https://github.com/m1inato/Fragmemo/releases/download/presets-1'
+const RELEASE = 'https://github.com/m1inato/Fragmemo/releases/download/presets-2'
 
 export const PRESET_DECKS: readonly PresetDeck[] = [
   {
@@ -24,8 +24,8 @@ export const PRESET_DECKS: readonly PresetDeck[] = [
     lang: 'ja',
     description: '按 JLPT 等级排列的一万词，带音高、真人发音和例句。',
     notes: 10641,
-    bytes: 131414715,
-    sha256: '5097123f9d98582122af75a5f775ec9a36b17c793d41ccd246960ede745d4865',
+    bytes: 96147340,
+    sha256: 'cf8a09615ef4cc6bb6959ef4b325349d764b48a49aae5641320ea01919ecf571',
     url: `${RELEASE}/jlpt-10k.apkg`
   },
   {
@@ -34,8 +34,8 @@ export const PRESET_DECKS: readonly PresetDeck[] = [
     lang: 'en',
     description: '托福核心词，乱序，带音标、发音、例句和词根记忆。',
     notes: 4127,
-    bytes: 81846527,
-    sha256: '88462a5ef9eb68fd3d1ff4c247d7755cc605ef931d1beccb2346c5c6ae21de9a',
+    bytes: 77785638,
+    sha256: 'eaf437f493fbc1bd6368b380bf8aad4e5a0ca8e61a237b0d930a27a0434158f0',
     url: `${RELEASE}/toefl-green.apkg`
   }
 ]

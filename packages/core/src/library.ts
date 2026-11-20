@@ -11,7 +11,7 @@ import { mergeSettings, normalizeSettings, type Settings, type SettingsPatch } f
 import type {
   AnswerMode, CardState, DeckMeta, DueCard, InboxItem, Lang, LogEntry, Note, Rating, RawNote, RawTemplate, ReviewEntry
 } from './types'
-import { dayStart, isoDate, monthKey, parseJsonl, sha256Hex, slugify, toJsonl, utf8 } from './util'
+import { dayStart, isoDate, levenshtein, monthKey, parseJsonl, sha256Hex, shuffle, slugify, toJsonl, utf8 } from './util'
 
 export interface LibraryDeps {
   storage: Storage
@@ -79,6 +79,8 @@ export interface Library {
   getCard(cardId: string): Promise<DueCard | null>
   pickMode(cardId: string): Promise<AnswerMode>
   distractors(cardId: string, n: number): Promise<string[]>
+  /** A card's headword and gloss as lists show them; for raw notes inferred from the note type. */
+  describe(cardId: string): Promise<{ title: string; detail: string } | null>
   /** Due time (ms) each rating would give, for labelling the rating buttons. */
   previewIntervals(cardId: string): Promise<Record<Rating, number>>
   review(cardId: string, r: { rating: Rating; mode: AnswerMode; correct?: boolean; durationMs: number }): Promise<CardState>
@@ -223,6 +225,28 @@ export function createLibrary(deps: LibraryDeps): Library {
       deck.display.set(note.template, (d = rawDisplay(deck.templates.get(note.template), notes)))
     }
     return d
+  }
+
+  /** Glosses (or headwords, for a reverse card) of other notes of the same Anki note type in the deck. */
+  function rawDistractors(deck: DeckData, note: RawNote, face: number, n: number): string[] {
+    const display = displayOf(deck, note)
+    const text = (x: Note) => (face === 0 ? noteDetail(x, display) : noteTitle(x, display))
+    const correct = text(note)
+    const title = noteTitle(note, display)
+    const others = deck.notes.filter((x): x is RawNote => x.type === 'raw' && !x.deleted && x.id !== note.id && x.template === note.template)
+    // Similar-looking headwords first: their glosses are the ones worth telling apart.
+    const near = others
+      .map((x) => ({ x, d: levenshtein(title, noteTitle(x, display)) }))
+      .sort((a, b) => a.d - b.d)
+      .slice(0, n * 4)
+      .map((e) => e.x)
+    const picked: string[] = []
+    for (const x of [...shuffle(near), ...shuffle(others)]) {
+      const t = text(x)
+      if (t && t !== correct && !picked.includes(t)) picked.push(t)
+      if (picked.length >= n) break
+    }
+    return picked
   }
 
   function sampleTitle(deck: DeckData): string | undefined {
@@ -607,9 +631,17 @@ export function createLibrary(deps: LibraryDeps): Library {
       const s = await state()
       const hit = locate(s, cardId)
       if (!hit) return []
+      if (hit.note.type === 'raw') return rawDistractors(hit.deck, hit.note, hit.face, n)
       const lang = hit.deck.meta.lang
       const pool = scopeDecks(s, lang).flatMap((d) => d.notes.map((note) => ({ note, deckId: d.meta.id })))
       return pickDistractors({ note: hit.note, face: hit.face, deckId: hit.deck.meta.id, lang }, pool, n)
+    },
+
+    async describe(cardId) {
+      const hit = locate(await state(), cardId)
+      if (!hit) return null
+      const display = displayOf(hit.deck, hit.note)
+      return { title: noteTitle(hit.note, display), detail: noteDetail(hit.note, display) }
     },
 
     async previewIntervals(cardId) {

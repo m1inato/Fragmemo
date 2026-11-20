@@ -103,8 +103,8 @@ export function Review({ scope, title, onExit }: { scope: ReviewScope; title: st
   }
 
   function spell(input: string) {
-    if (!item || item.note.type !== 'word') return
-    const verdict: SpellVerdict = judgeSpelling(item.lang, input, [item.note.fields.term, item.note.fields.reading])
+    if (!item?.accepted) return
+    const verdict: SpellVerdict = judgeSpelling(item.lang, input, item.accepted)
     if (verdict === 'close') return setPhase({ name: 'close', input })
     setPhase({ name: 'revealed', correct: verdict === 'correct' })
   }
@@ -214,17 +214,19 @@ export function Review({ scope, title, onExit }: { scope: ReviewScope; title: st
             )}
           </header>
 
-          {note.type === 'raw' ? (
+          {note.type === 'raw' && (revealed || item.mode === 'flip') ? (
             item.raw ? <CardFrame key={`${item.cardId}-${revealed}`} html={revealed ? item.raw.back : item.raw.front} css={item.raw.css} autoplay /> : <p className="muted">找不到这张卡的模板</p>
           ) : (
             <div className="review-card-body">
               <div className="prompt">
-                {item.mode === 'spell' && note.type === 'word' ? (
+                {note.type === 'raw' ? (
+                  <p className={item.mode === 'choice' && item.face === 0 ? 'prompt-term' : 'prompt-meaning'}>{item.prompt}</p>
+                ) : item.mode === 'spell' && note.type === 'word' ? (
                   <p className="prompt-meaning">{note.fields.meaning}</p>
                 ) : (
                   <Prompt note={note} face={item.face} hideText={item.mode === 'listen' && !revealed} />
                 )}
-                {(item.mode === 'listen' || item.speech || item.audioUrl) && (
+                {note.type !== 'raw' && (item.mode === 'listen' || item.speech || item.audioUrl) && (
                   <button className={`speaker${item.mode === 'listen' && !revealed ? ' speaker-large' : ''}`} onClick={() => play(item)} title="朗读 (R)" aria-label="朗读">
                     <Icon name="volume" size={item.mode === 'listen' && !revealed ? 30 : 16} />
                   </button>
@@ -255,7 +257,7 @@ export function Review({ scope, title, onExit }: { scope: ReviewScope; title: st
                   onReject={() => setPhase({ name: 'revealed', correct: false })} />
               )}
 
-              {revealed && (
+              {revealed && note.type !== 'raw' && (
                 <div className="answer-wrap">
                   <AnswerView note={note} face={item.face} showTerm={item.mode !== 'flip' || item.face !== 0} />
                 </div>

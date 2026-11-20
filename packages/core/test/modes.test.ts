@@ -22,7 +22,8 @@ describe('pickMode', () => {
     expect(pickMode(sentence, stable(5), T)).toBe('listen')
     expect(pickMode(sentence, stable(50), T)).toBe('flip')
     const raw: Note = { id: 'r', type: 'raw', key: 'raw:x', fields: {}, template: 't', tags: [], updatedAt: 0, deleted: false }
-    expect(pickMode(raw, null, T)).toBe('flip')
+    expect(pickMode(raw, null, T)).toBe('choice')
+    expect(pickMode({ ...raw, mode: 'flip' }, null, T)).toBe('flip')
   })
   it('honours a pinned mode', () => {
     expect(pickMode(word('2', '楽しい', '快乐的', {}, 'spell'), null, T)).toBe('spell')

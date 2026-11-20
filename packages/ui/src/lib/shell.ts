@@ -21,7 +21,7 @@ export type View =
   | { name: 'review'; scope: ReviewScope; title: string }
 export type Panel = 'qa' | 'tasks' | 'notes'
 
-/** Days of history the home page and sidebar show. */
+/** Days of history loaded for the streak and the sidebar week. */
 export const ACTIVITY_DAYS = 52 * 7
 
 /** Everything the frame around the pages shares: navigation, the right panel, AI entry points. */

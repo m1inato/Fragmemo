@@ -2,8 +2,7 @@
 
 .deck-hero {
   display: flex;
-  gap: 28px;
-  padding-top: 14px;
+  gap: 36px;
 }
 .deck-hero-main {
   flex: 1;
@@ -13,8 +12,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 10px;
-  font-size: 32px;
+  margin-top: 12px;
+  font-size: 40px;
   font-weight: 700;
 }
 .deck-rename {
@@ -34,15 +33,15 @@
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 8px 28px;
-  margin-top: 16px;
+  gap: 8px 36px;
+  margin-top: 20px;
 }
 .deck-num {
   display: flex;
   flex-direction: column;
 }
 .deck-num b {
-  font: 600 20px/1.2 var(--font-display);
+  font: 600 26px/1.2 var(--font-display);
   font-variant-numeric: tabular-nums;
 }
 .deck-num span,
@@ -70,10 +69,10 @@
 }
 .note-row {
   display: grid;
-  grid-template-columns: minmax(120px, 0.9fr) minmax(0, 2fr) auto;
+  grid-template-columns: minmax(140px, 0.9fr) minmax(0, 2fr) auto;
   align-items: center;
-  gap: 18px;
-  padding: 11px 16px;
+  gap: 20px;
+  padding: 14px 20px;
   cursor: default;
   transition: background 0.12s;
 }
@@ -84,7 +83,7 @@
   background: hsl(var(--accent) / 0.7);
 }
 .note-title {
-  font: 600 15px var(--font-display);
+  font: 600 16px var(--font-display);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;

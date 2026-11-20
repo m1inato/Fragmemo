@@ -3,6 +3,7 @@ import initSqlJs from 'sql.js'
 import { zstdCompressSync } from 'node:zlib'
 import { describe, expect, it } from 'vitest'
 import { readApkg } from '../src/anki/apkg'
+import { prepareReview } from '../src/review'
 import { testLibrary } from './helpers'
 
 // Builds small but structurally faithful Anki packages in both the legacy and current layouts.
@@ -148,6 +149,19 @@ describe.each([
     expect(deck.name).toBe('N5 动物')
     const rows = await lib.noteRows(deck.id)
     expect(rows.map((r) => [r.title, r.detail])).toEqual([['猫', 'cat'], ['犬', 'dog']])
+  })
+
+  it('asks raw cards by their headword and gloss', async () => {
+    const { lib } = testLibrary()
+    const { deck } = await lib.importApkg(await build())
+    const [neko] = await lib.getNotes(deck.id)
+    const host = { mediaUrl: (d: string, f: string) => `media/${d}/${f}` }
+    const spell = await prepareReview(lib, `${neko.id}:0`, host, 'spell')
+    expect(spell).toMatchObject({ mode: 'spell', modes: ['flip', 'choice', 'spell'], prompt: 'cat', answer: '猫', accepted: ['猫'] })
+    expect(spell.raw?.back).toContain('cat')
+    // One other note is too few options for a choice question.
+    const choice = await prepareReview(lib, `${neko.id}:0`, host, 'choice')
+    expect(choice).toMatchObject({ mode: 'flip', prompt: undefined })
   })
 
   it('re-imports idempotently and maps the revlog onto the same cards', async () => {

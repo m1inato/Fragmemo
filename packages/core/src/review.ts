@@ -27,8 +27,12 @@ export interface ReviewItem {
   mode: AnswerMode
   /** Modes the learner may switch to for this card. */
   modes: AnswerMode[]
-  /** The side to recall: a meaning, a term, a translation. Empty for raw cards. */
+  /** The side to recall: a meaning, a term, a translation; for raw cards the inferred gloss or headword. */
   answer: string
+  /** What a raw card asks while the learner chooses or spells (its own template shows only once revealed). */
+  prompt?: string
+  /** Spellings that count as right in spell mode. */
+  accepted?: string[]
   /** Shuffled options including `answer`, for choice mode. */
   choices?: string[]
   /** What to read aloud when there is no recording. */
@@ -67,8 +71,11 @@ export async function prepareReview(lib: Library, cardId: string, host: ReviewHo
   const deck = await lib.getDeck(card.deckId)
   if (!deck) throw new Error(`no such deck: ${card.deckId}`)
   const { note, face } = card
-  const modes = availableModes(note)
+  const text = note.type === 'raw' ? await lib.describe(cardId) : null
+  // A raw note without a recognisable headword and gloss can only be flipped.
+  const modes = note.type === 'raw' && !(text?.title && text.detail) ? (['flip'] as AnswerMode[]) : availableModes(note)
   let chosen = mode && modes.includes(mode) ? mode : await lib.pickMode(cardId)
+  if (!modes.includes(chosen)) chosen = 'flip'
 
   const item: ReviewItem = {
     cardId,
@@ -88,18 +95,28 @@ export async function prepareReview(lib: Library, cardId: string, host: ReviewHo
   if (note.type === 'raw') {
     const tpl = await lib.getTemplate(deck.id, note.template)
     if (tpl) item.raw = renderRawCard(tpl, note, face, { deck: deck.name, mediaUrl: (f) => host.mediaUrl(deck.id, f) })
-    return item
+    if (text && chosen !== 'flip') {
+      // Spelling always asks for the headword; a choice follows the card's direction.
+      const forward = chosen === 'choice' && face === 0
+      item.prompt = forward ? text.title : text.detail
+      item.answer = forward ? text.detail : text.title
+      item.accepted = [text.title]
+    }
+  } else {
+    const audio = 'audio' in note.fields ? note.fields.audio : undefined
+    if (audio) item.audioUrl = host.mediaUrl(deck.id, audio)
+    item.speech = speechText(note)
+    if (note.type === 'word') item.accepted = [note.fields.term, note.fields.reading ?? '']
   }
-
-  const audio = 'audio' in note.fields ? note.fields.audio : undefined
-  if (audio) item.audioUrl = host.mediaUrl(deck.id, audio)
-  item.speech = speechText(note)
 
   if (chosen === 'choice') {
     const wrong = await lib.distractors(cardId, CHOICES - 1)
     // Two options is a coin toss; without enough material fall back to flipping.
     if (wrong.length >= 2) item.choices = shuffle([item.answer, ...wrong])
-    else chosen = item.mode = 'flip'
+    else {
+      chosen = item.mode = 'flip'
+      item.prompt = undefined
+    }
   }
   return item
 }

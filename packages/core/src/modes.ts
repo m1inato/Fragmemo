@@ -12,7 +12,9 @@ export function availableModes(note: Note): AnswerMode[] {
     case 'grammar':
       return ['flip', 'choice']
     case 'raw':
-      return ['flip']
+      // Choice and spelling use the headword and gloss inferred from the note type (see rawDisplay);
+      // prepareReview falls back to flipping when a note has neither.
+      return ['flip', 'choice', 'spell']
   }
 }
 

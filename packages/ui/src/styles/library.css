@@ -2,14 +2,15 @@
 
 .deck-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 18px;
 }
 .deck {
   position: relative;
   display: flex;
-  gap: 16px;
-  padding: 16px;
+  gap: 20px;
+  padding: 20px;
+  border-radius: 12px;
   cursor: default;
   transition: border-color 0.15s, box-shadow 0.2s, transform 0.2s;
 }
@@ -25,15 +26,15 @@
   flex-direction: column;
 }
 .deck h3 {
-  padding-right: 64px;
-  font-size: 15.5px;
+  padding-right: 72px;
+  font-size: 17px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .deck-meta {
-  margin-top: 3px;
-  font-size: 12.5px;
+  margin-top: 4px;
+  font-size: 13px;
   color: hsl(var(--faint-foreground));
   font-variant-numeric: tabular-nums;
 }
@@ -61,8 +62,8 @@
 }
 .deck-review {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: 18px;
+  right: 18px;
 }
 
 .deck-cover {
@@ -70,8 +71,8 @@
   flex: none;
   display: grid;
   place-items: center;
-  width: 76px;
-  height: 96px;
+  width: 88px;
+  height: 112px;
   padding: 6px;
   border-radius: 8px;
   border: 1px solid hsl(var(--h) 40% 50% / 0.2);
@@ -90,7 +91,7 @@
 .deck-cover span {
   max-width: 100%;
   padding-left: 4px;
-  font: 600 19px/1.15 var(--font-display);
+  font: 600 21px/1.15 var(--font-display);
   color: hsl(var(--h) 45% 32%);
   text-align: center;
   word-break: break-all;
@@ -102,12 +103,12 @@
   color: hsl(var(--h) 65% 80%);
 }
 .deck-cover-large {
-  width: 112px;
-  height: 142px;
-  border-radius: 10px;
+  width: 136px;
+  height: 174px;
+  border-radius: 12px;
 }
 .deck-cover-large span {
-  font-size: 26px;
+  font-size: 30px;
 }
 .deck-cover-large span.long {
   font-size: 19px;
