@@ -3,19 +3,17 @@ import { LANG_LABELS, langHue } from '../lib/format'
 import { useShell, type View } from '../lib/shell'
 import { Icon, Mark, type IconName } from './Icon'
 
-const PAGES: { name: 'home' | 'library' | 'import'; label: string; icon: IconName }[] = [
-  { name: 'home', label: '日课', icon: 'home' },
-  { name: 'library', label: '全部卡组', icon: 'layers' },
+const PAGES: { name: 'library' | 'import'; label: string; icon: IconName }[] = [
+  { name: 'library', label: '卡组', icon: 'layers' },
   { name: 'import', label: '导入', icon: 'download' }
 ]
 
-/** Pages, decks grouped by language, and the study streak. The traffic lights sit above the brand. */
+/** The brand (back to the home page), pages, decks by language, the streak. The traffic lights sit above the brand. */
 export function Sidebar() {
   const { view, go, langs, activity, openCreateDeck } = useShell()
   const all = langs ?? []
-  const left = all.reduce((n, l) => n + l.due + l.fresh, 0)
   const decks = all.reduce((n, l) => n + l.decks.length, 0)
-  const counts: Record<string, number> = { home: left, library: decks }
+  const counts: Record<string, number> = { library: decks }
   const current = (name: View['name']) => view.name === name
   const today = activity?.days.at(-1)?.count ?? 0
   const shown: Lang[] = all.map((l) => l.lang)

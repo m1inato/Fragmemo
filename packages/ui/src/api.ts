@@ -24,6 +24,9 @@ export interface Answer { rating: Rating; mode: AnswerMode; correct?: boolean; d
 
 export interface LocalModel { id: string; label: string; efforts: string[] }
 
+/** Services usable on this machine right now. */
+export interface AiStatus { claude: boolean; codex: LocalModel[] }
+
 export type AiProviderId = 'codex-cli' | 'deepseek' | 'claude-cli' | 'openai-compatible'
 /** write: every task that changes notes; qa: the side panel. */
 export type AiPurpose = 'write' | 'qa'
@@ -115,7 +118,7 @@ export interface Api {
 
   onLibraryChanged(fn: () => void): () => void
 
-  codexModels(): Promise<LocalModel[]>
+  aiStatus(): Promise<AiStatus>
   getAiSettings(): Promise<AiSettings>
   saveAiSettings(patch: AiSettingsPatch): Promise<AiSettings>
   /** Resolves with a short status line, rejects with what is wrong. */

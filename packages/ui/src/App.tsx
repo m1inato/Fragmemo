@@ -102,7 +102,7 @@ export function App() {
           />
         ) : (
           <div className={`app${app.platform === 'darwin' ? ' is-mac' : ''}`}>
-            <Sidebar />
+            {view.name !== 'home' && <Sidebar />}
             <div className="main">
               {view.name === 'home' && <Home />}
               {view.name === 'library' && <Library />}

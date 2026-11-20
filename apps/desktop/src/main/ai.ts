@@ -1,9 +1,9 @@
 import { createOpenAICompatProvider, readTools, runAgent, tutorSystem, type Msg, type Provider } from '@fragmemo/ai'
 import { createAnalyzer, createIds, type Analyzer, type Lang } from '@fragmemo/core'
-import type { AiPurpose, AiSettings, AiSettingsPatch } from '@fragmemo/ui/api'
+import type { AiPurpose, AiSettings, AiSettingsPatch, AiStatus } from '@fragmemo/ui/api'
 import { app, safeStorage } from 'electron'
 import { join } from 'node:path'
-import { codexProvider } from './codex'
+import { codexModels, codexProvider } from './codex'
 import { createClaudeCliProvider } from './claude'
 import { commit, library } from './library'
 import { getSettings, mergeAi, saveSettings, type StoredAiSettings } from './settings'
@@ -49,6 +49,17 @@ export function saveAiSettings(patch: AiSettingsPatch): AiSettings {
   })
   saveSettings({ ai: next })
   return getAiSettings()
+}
+
+/** What can actually run here: a Claude Code binary, and the models a signed-in Codex offers. */
+export async function aiStatus(): Promise<AiStatus> {
+  const { claude } = getSettings().ai
+  const workDir = join(app.getPath('userData'), 'agent')
+  const [found, codex] = await Promise.all([
+    createClaudeCliProvider({ path: claude.path || undefined, workDir }).available().catch(() => false),
+    codexModels()
+  ])
+  return { claude: found, codex }
 }
 
 export function providerFor(purpose: AiPurpose): Provider {

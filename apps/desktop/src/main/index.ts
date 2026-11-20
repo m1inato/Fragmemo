@@ -5,7 +5,6 @@ import { pathToFileURL } from 'node:url'
 import type { TaskInput } from '@fragmemo/ai'
 import type { AiPurpose, AiSettingsPatch, TaskAction } from '@fragmemo/ui/api'
 import type { Lang } from '@fragmemo/core'
-import { codexModels } from './codex'
 import * as ai from './ai'
 import * as jobs from './jobs'
 import * as lib from './library'
@@ -129,7 +128,7 @@ function registerIpc(libraryReady: Promise<void>) {
   handle('review:pin', review.pinMode)
   handle('review:finish', review.finish)
 
-  handle('ai:codexModels', codexModels)
+  handle('ai:status', ai.aiStatus)
   handle('ai:getSettings', ai.getAiSettings)
   handle('ai:saveSettings', (patch: AiSettingsPatch) => ai.saveAiSettings(patch))
   handle('ai:test', (purpose: AiPurpose) => ai.testAi(purpose))

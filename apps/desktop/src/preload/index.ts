@@ -52,7 +52,7 @@ const api = {
 
   onLibraryChanged: (fn) => subscribe('library:changed', () => fn()),
 
-  codexModels: () => invoke('ai:codexModels'),
+  aiStatus: () => invoke('ai:status'),
   getAiSettings: () => invoke('ai:getSettings'),
   saveAiSettings: (patch) => invoke('ai:saveSettings', patch),
   testAi: (purpose) => invoke('ai:test', purpose),
