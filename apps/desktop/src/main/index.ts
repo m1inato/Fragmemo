@@ -1,4 +1,4 @@
-import type { Theme } from '@fragmemo/ui/api'
+import type { Palette, Theme } from '@fragmemo/ui/api'
 import { app, BrowserWindow, ipcMain, nativeTheme, net, protocol, shell, type IpcMainInvokeEvent } from 'electron'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -9,6 +9,7 @@ import { codexModels } from './codex'
 import * as ai from './ai'
 import * as jobs from './jobs'
 import * as lib from './library'
+import * as presets from './presets'
 import * as review from './review'
 import { getSettings, saveSettings } from './settings'
 import * as tasks from './tasks'
@@ -23,14 +24,14 @@ protocol.registerSchemesAsPrivileged([
 
 let win: BrowserWindow | null = null
 
-const BACKGROUND: Record<Exclude<Theme, 'system'>, string> = { light: '#fcfcfc', dark: '#18191b', sepia: '#f6f0e3' }
+const BACKGROUND: Record<Exclude<Theme, 'system'>, string> = { light: '#f9fbfd', dark: '#111418', sepia: '#f6f0e3' }
 
 function background(theme: Theme): string {
   return BACKGROUND[theme === 'system' ? (nativeTheme.shouldUseDarkColors ? 'dark' : 'light') : theme]
 }
 
 function createWindow() {
-  const { theme } = getSettings()
+  const { theme, palette } = getSettings()
   win = new BrowserWindow({
     width: 1120,
     height: 760,
@@ -60,7 +61,7 @@ function createWindow() {
     if (url !== win?.webContents.getURL()) e.preventDefault()
   })
 
-  const query = { theme }
+  const query = { theme, palette }
   if (process.env.ELECTRON_RENDERER_URL) win.loadURL(`${process.env.ELECTRON_RENDERER_URL}?${new URLSearchParams(query)}`)
   else win.loadFile(join(__dirname, '../renderer/index.html'), { query })
 }
@@ -88,7 +89,7 @@ function broadcast(channel: string, payload?: unknown) {
 
 function appState() {
   const s = getSettings()
-  return { libraryPath: lib.libraryRoot(), deviceId: s.deviceId, theme: s.theme, version: app.getVersion(), platform: process.platform }
+  return { libraryPath: lib.libraryRoot(), deviceId: s.deviceId, theme: s.theme, palette: s.palette, version: app.getVersion(), platform: process.platform }
 }
 
 function registerIpc(libraryReady: Promise<void>) {
@@ -96,6 +97,7 @@ function registerIpc(libraryReady: Promise<void>) {
     await libraryReady
     return appState()
   })
+  handle('app:setPalette', (palette: Palette) => void saveSettings({ palette }))
   handle('app:setTheme', (theme: Theme) => {
     saveSettings({ theme })
     win?.setBackgroundColor(background(theme))
@@ -109,10 +111,13 @@ function registerIpc(libraryReady: Promise<void>) {
 
   handle('notebook:read', lib.readNotebook)
   handle('notebook:write', lib.writeNotebook)
-  handle('study:activity', () => lib.library().studyActivity())
-  handle('decks:importPreset', lib.importPreset)
+  handle('study:activity', lib.studyActivity)
+  handle('presets:list', presets.listPresets)
+  handle('presets:import', (id: string, withHistory: boolean) =>
+    presets.importPreset(id, withHistory, (e) => broadcast('presets:progress', e)))
   handle('decks:overview', lib.overview)
   handle('decks:create', lib.createDeck)
+  handle('decks:rename', lib.renameDeck)
   handle('decks:importApkg', (o: { withHistory: boolean }) => (win ? lib.importApkg(win, o) : null))
   handle('notes:list', lib.listNotes)
   handle('notes:upsert', lib.saveNote)

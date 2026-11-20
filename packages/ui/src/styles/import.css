@@ -1,0 +1,125 @@
+/* 导入: preset decks, an Anki file, or text for the AI. */
+
+.import-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 26px;
+}
+
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: 14px;
+}
+.preset {
+  display: flex;
+  gap: 18px;
+  padding: 18px;
+  transition: box-shadow 0.2s, border-color 0.15s;
+}
+.preset:hover {
+  border-color: hsl(var(--foreground) / 0.14);
+  box-shadow: var(--shadow);
+}
+.preset-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.preset h3 {
+  font-size: 16px;
+}
+.preset-desc {
+  font-size: 13px;
+  color: hsl(var(--muted-foreground));
+}
+.preset-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.preset-progress .progress {
+  flex: 1;
+}
+.preset-progress small {
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+}
+.preset-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 6px;
+}
+.preset-foot {
+  grid-column: 1 / -1;
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+.anki-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 24px 36px;
+  border-style: dashed;
+  border-width: 1.5px;
+  text-align: center;
+}
+.anki-drop h3 {
+  font-size: 17px;
+}
+.anki-drop .muted {
+  max-width: 440px;
+  font-size: 13px;
+}
+.anki-drop .check {
+  margin: 6px 0 4px;
+}
+.anki-icon {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  background: hsl(var(--primary) / 0.1);
+  color: hsl(var(--primary));
+}
+
+.import-note {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: hsl(var(--primary) / 0.07);
+  color: hsl(var(--primary));
+  font-size: 13px;
+}
+.import-note p {
+  color: hsl(var(--foreground) / 0.8);
+}
+.import-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+.import-card .editor-grid {
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}

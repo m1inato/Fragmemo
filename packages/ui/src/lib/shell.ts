@@ -1,6 +1,6 @@
-import type { Lang, LangSummary, ReviewScope } from '@fragmemo/core'
+import type { Lang, LangSummary, ReviewScope, StudyActivity } from '@fragmemo/core'
 import { createContext, useContext } from 'react'
-import type { Theme, TaskRecord } from '../api'
+import type { Palette, Theme, TaskRecord } from '../api'
 
 /** What the Generate dialog opens with: a tab and, optionally, a target deck. */
 export interface GeneratePreset {
@@ -11,16 +11,18 @@ export interface GeneratePreset {
   request?: string
 }
 
-export type ImportPreset = Pick<GeneratePreset, 'lang' | 'text'>
+export type ImportSource = 'presets' | 'anki' | 'text'
 
 export type View =
   | { name: 'home' }
-  | { name: 'activity' }
   | { name: 'library' }
-  | { name: 'import'; preset?: ImportPreset }
+  | { name: 'import'; source?: ImportSource; lang?: Lang; text?: string }
   | { name: 'deck'; deckId: string }
   | { name: 'review'; scope: ReviewScope; title: string }
 export type Panel = 'qa' | 'tasks' | 'notes'
+
+/** Days of history the home page and sidebar show. */
+export const ACTIVITY_DAYS = 52 * 7
 
 /** Everything the frame around the pages shares: navigation, the right panel, AI entry points. */
 export interface Shell {
@@ -28,16 +30,22 @@ export interface Shell {
   go(view: View): void
   /** Per-language overview, refreshed whenever the Library changes. */
   langs: LangSummary[] | undefined
+  activity: StudyActivity | undefined
   /** Bumped on every Library change, for pages that load their own data. */
   version: number
+  /** Ask every page to refetch, e.g. after a review round that did not touch the Library files. */
+  refresh(): void
   tasks: TaskRecord[]
   panel: Panel | null
   setPanel(p: Panel | null): void
   openGenerate(preset?: GeneratePreset): void
   openCreateDeck(lang?: Lang): void
   openSettings(): void
+  mac: boolean
   theme: Theme
   setTheme(t: Theme): void
+  palette: Palette
+  setPalette(p: Palette): void
 }
 
 export const ShellContext = createContext<Shell | null>(null)

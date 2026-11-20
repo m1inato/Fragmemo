@@ -63,7 +63,7 @@ flowchart TB
 ```
 fragmemo/
 ├── packages/
-│   ├── core/      # 类型、卡组读写、调度、回放、去重、模式选择、复习编排、.apkg / revlog 导入
+│   ├── core/      # 类型、卡组读写、调度、回放、去重、模式选择、复习编排、.apkg / revlog 导入、预设卡包目录
 │   ├── ui/        # React 组件、Api 接口定义
 │   └── ai/        # Provider、Agent Harness、工具、写入流水线、prompt、任务定义（runJob）、TTS 接口
 ├── apps/
@@ -75,7 +75,7 @@ fragmemo/
 | 包 | 依赖 | 运行于 | 平台实现 |
 | --- | --- | --- | --- |
 | core | ts-fsrs、zod、jszip、sql.js、fzstd、kuromoji | 两端 | — |
-| ui | react、core | 两端 | — |
+| ui | react、core；笔记编辑器 tiptap、katex（按需加载） | 两端 | — |
 | ai | core、zod | 两端 | — |
 | desktop | electron、系统 git | macOS | NodeStorage、GitCliSync、CliProvider、McpToolServer、TaskQueue、SystemTts |
 | android | @capacitor/core、@capacitor/filesystem、isomorphic-git | Android | CapStorage、IsoGitSync、SystemTts |
@@ -142,10 +142,12 @@ Library/                         # 私有 git 仓库根目录
 ├── profile.ja.md                # 学习者档案（每语言一份）
 ├── profile.en.md
 ├── inbox.jsonl                  # 手机收藏的待处理
+├── notebook.json                # 学习笔记（可选）
 ├── decks/<deckId>/
 │   ├── deck.json
 │   ├── notes.jsonl              # 一行一条 Note
 │   ├── tpl/<name>/              # raw 类型模板：front.html / back.html / style.css（多卡片或 cloze 另有 template.json）
+│   ├── notebook.json            # 卡组笔记（可选）
 │   └── media/<sha256>.<ext>
 ├── logs/<deviceId>/<yyyy-mm>.jsonl
 ├── tasks.json                   # 任务队列
@@ -179,7 +181,10 @@ Library/                         # 私有 git 仓库根目录
 - `mode`（可选）：固定作答模式
 - 删除 = `deleted: true`，不物理删除
 - raw 模板在 `sandbox="allow-scripts"` 的 iframe 中渲染；raw 转标准类型时保留 `id`
+- raw 在列表里显示的标题和释义不写进数据，读取时推断：标题取第一张卡正面出现的、多数笔记非空、取值短且基本不重复、不是纯数字的字段；释义取只在背面出现的同类字段。Anki 的排序字段不可靠（常是编号或词表名），不用
 - 媒体文件名 = 内容 sha256
+
+**notebook.json**：笔记面板的内容，tiptap（ProseMirror）文档 JSON；图片目前以 data URL 内嵌，之后改存 `media/`。
 
 **学习者档案**：全局偏好表，每次 AI 调用都注入 system prompt。
 
@@ -307,7 +312,9 @@ export function createLibrary(deps: { storage: Storage; sync: SyncBackend; clock
 
 export interface Library {
   listDecks(): Promise<DeckMeta[]>
+  renameDeck(deckId: string, name: string): Promise<DeckMeta>   // 只改显示名，id 和路径不变
   getNotes(deckId: string): Promise<Note[]>
+  noteRows(deckId: string): Promise<NoteRow[]>                  // 列表用：{ note, title, detail }，raw 按上面的规则推断
   upsertNotes(deckId: string, notes: Note[]): Promise<void>
   findByKey(key: string): Promise<{ deckId: string; note: Note } | null>
 
@@ -323,9 +330,10 @@ export interface Library {
   getCard(cardId: string): Promise<DueCard | null>
   previewIntervals(cardId: string): Promise<Record<Rating, number>>
   today(lang: Lang): Promise<{ reviewed: number; introduced: number }>
+  studyActivity(days?: number): Promise<StudyActivity>          // 每天的有效复习数、连续天数、最近学过的词
 
   addToInbox(item: Omit<InboxItem, 'id' | 'createdAt' | 'device'>): Promise<void>
-  importApkg(bytes: Uint8Array): Promise<ImportResult>          // 生成 raw Note；ImportResult = { deck, added, updated }
+  importApkg(bytes: Uint8Array, o?: { name?: string }): Promise<ImportResult>  // 生成 raw Note；name 用于新卡组的显示名
   importRevlog(bytes: Uint8Array): Promise<number>              // 按 Anki note guid 对应
   importDeckFolder(files: Map<string, Uint8Array>): Promise<ImportResult>
 
@@ -342,6 +350,8 @@ export function replay(logs: LogEntry[], scheduler: Scheduler): Map<string, Card
 ```
 
 .apkg 解析：jszip 解包 → sql.js 读 `collection.anki21`（`anki21b` 先 zstd 解压）。
+
+**预设卡包**：`core/presets.ts` 是目录（名称、语言、简介、大小、sha256、下载地址），只是数据。卡包文件放在本仓库的 GitHub Release（`presets-1`），不进仓库、不进安装包。壳在用户点击时下载到应用缓存目录（不在 Library 里，不进 git），校验 sha256 后按普通 .apkg 导入，卡组名取目录里的名称。更换卡包 = 发新的 Release 并改目录。
 
 ## AI 层
 
@@ -369,10 +379,10 @@ export interface CliProvider {
 | 实现 | 平台 | 说明 |
 | --- | --- | --- |
 | ClaudeCliProvider | macOS | 启动本机已登录的 `claude` 子进程，stream-json 输出；禁用内置工具，只接入 Fragmemo 的 MCP 工具；清除环境中的 `ANTHROPIC_*` 变量；可通过 Anthropic 兼容接口指向 DeepSeek |
-| CodexCliProvider | macOS | 启动本机已登录的 `codex` 子进程，同样只接入 MCP 工具 |
+| CodexCliProvider | macOS | 启动本机已登录的 `codex app-server`（JSON-RPC），Fragmemo 的工具以 dynamic tools 注入，关闭 shell、插件和联网搜索；不能续接会话，问答的历史由 harness 拼进 prompt（`resumable: false`） |
 | OpenAICompatProvider | 两端 | base URL + key + model；key 只存本机 |
 
-CLI 参数集中在 `apps/desktop/src/main/cli-args.ts`，以当前版本 `--help` 为准；prompt 经 stdin 传入。用途分“生成与修改”（所有写入任务，修正轮在同一会话内进行，必须同一 Provider）和“问答”，各自可选 Provider 和模型。CodexCliProvider 待 M2 之后补上。
+CLI 参数集中在 `apps/desktop/src/main/cli-args.ts`，以当前版本 `--help` 为准；prompt 经 stdin 传入。用途分“生成与修改”（所有写入任务，修正轮在同一会话内进行，必须同一 Provider）和“问答”，各自可选 Provider 和模型。DeepSeek 走 ClaudeCliProvider，把 Anthropic 兼容地址和 key 交给 `claude`。
 
 **Agent Harness**
 

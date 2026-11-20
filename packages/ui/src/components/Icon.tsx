@@ -30,7 +30,16 @@ const paths = {
   refresh: 'M23 4v6h-6 M1 20v-6h6 M3.51 9a9 9 0 0 1 14.85-3.36L23 10 M1 14l4.64 4.36A9 9 0 0 0 20.49 15',
   trash: 'M3 6h18 M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6 M10 11v6 M14 11v6 M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2',
   send: 'M12 19V5 M5 12l7-7 7 7',
-  edit: 'M12 20h9 M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z'
+  edit: 'M12 20h9 M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z',
+  download: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3',
+  flame: 'M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z',
+  clock: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 6v6l4 2',
+  target: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12z M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+  arrow: 'M5 12h14 M12 5l7 7-7 7',
+  book: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20 M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z',
+  home: 'M3 10.5L12 3l9 7.5 M5 9v11a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9',
+  palette: 'M12 22a10 10 0 1 1 10-10c0 2.5-2 3.5-3.5 3.5H16a2 2 0 0 0-1.5 3.3c.4.5.5 1 .5 1.4 0 1-.9 1.8-3 1.8z M7.5 11a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M10.5 7a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M15.5 7.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2z',
+  keyboard: 'M4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z M6 10h.01 M10 10h.01 M14 10h.01 M18 10h.01 M8 14h8'
 } as const
 
 export type IconName = keyof typeof paths
@@ -60,9 +69,9 @@ export function Icon({ name, size = 16, className }: { name: IconName; size?: nu
 export function Mark({ size = 28 }: { size?: number }) {
   return (
     <svg className="mark" width={size} height={size} viewBox="0 0 32 32" aria-hidden>
-      <rect x="3" y="4" width="16" height="12" rx="3" fill="hsl(var(--primary))" fillOpacity=".3" />
-      <rect x="8" y="10" width="16" height="12" rx="3" fill="hsl(var(--primary))" fillOpacity=".6" />
-      <rect x="13" y="16" width="16" height="12" rx="3" fill="hsl(var(--primary))" />
+      <rect x="5" y="7" width="15" height="19" rx="3.2" transform="rotate(-14 12.5 16.5)" fill="hsl(var(--primary))" fillOpacity=".28" />
+      <rect x="9" y="6" width="15" height="19" rx="3.2" transform="rotate(-3 16.5 15.5)" fill="hsl(var(--primary))" fillOpacity=".55" />
+      <rect x="13" y="5.5" width="15" height="19" rx="3.2" transform="rotate(9 20.5 15)" fill="hsl(var(--primary))" />
     </svg>
   )
 }

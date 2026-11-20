@@ -1,8 +1,9 @@
 import {
   createIds, createLibrary, noteKey, paths, systemClock,
-  type DeckMeta, type ImportResult, type Lang, type LangSummary, type Library, type Note, type Settings, type SettingsPatch, type Storage
+  type DeckMeta, type ImportResult, type Lang, type LangSummary, type Library, type Note, type NoteRow, type Settings, type SettingsPatch, type Storage,
+  type StudyActivity
 } from '@fragmemo/core'
-import { PRESET_PACKAGES, type PresetPackageId, type NoteDraft } from '@fragmemo/ui/api'
+import type { NoteDraft } from '@fragmemo/ui/api'
 import { app, dialog, shell, type BrowserWindow } from 'electron'
 import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -159,7 +160,17 @@ export async function createDeck(o: { name: string; lang: Lang }): Promise<DeckM
   return deck
 }
 
-export const listNotes = (deckId: string): Promise<Note[]> => library().getNotes(deckId)
+export async function renameDeck(deckId: string, name: string): Promise<DeckMeta> {
+  if (!name.trim()) throw new Error('卡组名不能为空')
+  const deck = await library().renameDeck(deckId, name)
+  await commit(`edit: ${deckId}`)
+  notify()
+  return deck
+}
+
+export const listNotes = (deckId: string): Promise<NoteRow[]> => library().noteRows(deckId)
+
+export const studyActivity = (days?: number): Promise<StudyActivity> => library().studyActivity(days)
 
 export async function saveNote(deckId: string, draft: NoteDraft): Promise<Note> {
   const lib = library()
@@ -201,22 +212,13 @@ export async function importApkg(win: BrowserWindow, o: { withHistory: boolean }
   })
   const file = res.filePaths[0]
   if (res.canceled || !file) return null
-  const lib = library()
-  return importPackage(lib, await readFile(file), o.withHistory)
+  return importPackage(await readFile(file), o)
 }
 
-export async function importPreset(id: PresetPackageId, withHistory: boolean) {
-  if (!Object.hasOwn(PRESET_PACKAGES, id)) throw new Error('未知预设卡包')
+export async function importPackage(bytes: Uint8Array, o: { withHistory: boolean; name?: string }): Promise<ImportResult> {
   const lib = library()
-  const root = app.isPackaged ? process.resourcesPath : __dirname
-  const bytes = await readFile(join(root, 'presets', id + '.apkg'))
-  if (library() !== lib) throw new Error('词库已切换，请重新导入')
-  return importPackage(lib, bytes, withHistory)
-}
-
-async function importPackage(lib: Library, bytes: Uint8Array, withHistory: boolean) {
-  const result = await lib.importApkg(bytes)
-  if (withHistory) await lib.importRevlog(bytes)
+  const result = await lib.importApkg(bytes, { name: o.name })
+  if (o.withHistory) await lib.importRevlog(bytes)
   await commit(`import: ${result.deck.id}`)
   notify()
   return result

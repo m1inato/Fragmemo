@@ -1,18 +1,21 @@
 import type { Proposal, TaskInput, TaskKind } from '@fragmemo/ai'
 import type {
-  AnswerMode, DeckMeta, GrammarNote, ImportResult, Lang, LangSummary, Note, Rating, ReviewItem, ReviewQueue,
-  ReviewScope, StudyActivity, SentenceNote, Settings, SettingsPatch, WordNote
+  AnswerMode, DeckMeta, GrammarNote, ImportResult, Lang, LangSummary, Note, NoteRow, PresetDeck, Rating, ReviewItem,
+  ReviewQueue, ReviewScope, StudyActivity, SentenceNote, Settings, SettingsPatch, WordNote
 } from '@fragmemo/core'
 
 // The UI's only door to the outside world. Each shell provides one implementation:
 // the Electron preload over IPC, the Android WebView directly over core + Capacitor.
 
 export type Theme = 'light' | 'dark' | 'sepia' | 'system'
+/** The accent colour family, independent of light or dark. */
+export type Palette = 'sky' | 'sakura' | 'mint' | 'matcha' | 'plain'
 
 export interface AppState {
   libraryPath: string | null
   deviceId: string
   theme: Theme
+  palette: Palette
   version: string
   platform: string
 }
@@ -75,18 +78,15 @@ export interface TaskRecord {
   result?: AiTaskResult
 }
 
-export const PRESET_PACKAGES = {
-  '832276382': '【egg rolls】JLPT N1～N5 一万词 v3.5',
-  '657511105': 'TOEFL 托福绿宝书 乱序版'
-} as const
-
-export type PresetPackageId = keyof typeof PRESET_PACKAGES
+/** A preset deck and whether its package is already downloaded. */
+export interface PresetInfo extends PresetDeck { downloaded: boolean }
 
 export interface Api {
   readNotebook(root: string, deckId?: string): Promise<string | null>
   writeNotebook(root: string, deckId: string | undefined, document: string): Promise<void>
   getApp(): Promise<AppState>
   setTheme(theme: Theme): Promise<void>
+  setPalette(palette: Palette): Promise<void>
   /** Pick or create a Library folder; null when cancelled. */
   chooseLibrary(): Promise<AppState | null>
   revealLibrary(): Promise<void>
@@ -94,13 +94,18 @@ export interface Api {
   getSettings(): Promise<Settings>
   saveSettings(patch: SettingsPatch): Promise<Settings>
 
+  /** Reviews per day over the last `days` days (default 7), the streak and recent words. */
+  studyActivity(days?: number): Promise<StudyActivity>
+  listPresets(): Promise<PresetInfo[]>
+  /** Downloads the package first if needed, reporting through onPresetProgress. */
+  importPreset(id: string, withHistory: boolean): Promise<ImportResult>
+  onPresetProgress(fn: (e: { id: string; received: number; total: number }) => void): () => void
   /** Per-language totals and deck summaries for today. */
-  studyActivity(): Promise<StudyActivity>
-  importPreset(id: PresetPackageId, withHistory: boolean): Promise<ImportResult>
   overview(): Promise<LangSummary[]>
   createDeck(o: { name: string; lang: Lang }): Promise<DeckMeta>
+  renameDeck(deckId: string, name: string): Promise<DeckMeta>
   importApkg(o: { withHistory: boolean }): Promise<ImportResult | null>
-  listNotes(deckId: string): Promise<Note[]>
+  listNotes(deckId: string): Promise<NoteRow[]>
   saveNote(deckId: string, draft: NoteDraft): Promise<Note>
   deleteNote(deckId: string, noteId: string): Promise<void>
 

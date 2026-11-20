@@ -7,12 +7,7 @@ directories:
 # Everything is bundled by electron-vite; the app ships no node_modules.
 files:
   - out/**/*
-  - "!out/main/presets/**"
   - package.json
-extraResources:
-  - from: out/main/presets
-    to: presets
-    filter: ["*.apkg"]
 asar: true
 mac:
   category: public.app-category.education

@@ -1,8 +1,11 @@
+import { lazy, Suspense } from 'react'
 import { Icon } from '../components/Icon'
 import { useShell, type Panel } from '../lib/shell'
 import { QaPanel } from './SidePanel'
-import { Notebook } from './Notebook'
 import { TasksPanel } from './Tasks'
+
+// The editor (tiptap, KaTeX) is large and only needed once the notes tab opens.
+const Notebook = lazy(() => import('./Notebook').then((m) => ({ default: m.Notebook })))
 
 const TABS: Record<Panel, string> = { notes: '笔记', qa: '问答', tasks: 'AI 任务' }
 
@@ -26,9 +29,16 @@ export function RightPanel({ root }: { root: string }) {
           <Icon name="x" />
         </button>
       </header>
-      {panel === 'notes' && <Notebook key={view.name === 'deck' ? view.deckId : 'general:'} root={root}
-        deckId={view.name === 'deck' ? view.deckId : undefined}
-        title={view.name === 'deck' ? langs?.flatMap(l => l.decks).find(d => d.id === view.deckId)?.name ?? '卡组笔记' : '学习笔记'} />}
+      {panel === 'notes' && (
+        <Suspense fallback={<p className="panel-loading faint">正在打开笔记…</p>}>
+          <Notebook
+            key={view.name === 'deck' ? view.deckId : 'general:'}
+            root={root}
+            deckId={view.name === 'deck' ? view.deckId : undefined}
+            title={view.name === 'deck' ? langs?.flatMap((l) => l.decks).find((d) => d.id === view.deckId)?.name ?? '卡组笔记' : '学习笔记'}
+          />
+        </Suspense>
+      )}
       <div className="panel-tab" hidden={panel !== 'qa'}>
         <QaPanel />
       </div>

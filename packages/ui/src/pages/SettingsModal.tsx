@@ -1,25 +1,21 @@
 import type { Settings } from '@fragmemo/core'
 import { useEffect, useState } from 'react'
-import type { AppState, Theme } from '../api'
+import type { AppState, Palette, Theme } from '../api'
 import { Modal } from '../components/Modal'
 import { useToast } from '../components/Toast'
 import { api } from '../lib/api'
-import { applyTheme, THEME_LABELS } from '../lib/theme'
+import { useShell } from '../lib/shell'
+import { PALETTE_LABELS, THEME_LABELS } from '../lib/theme'
 import { AiSection, ProfileSection } from './AiSettings'
 
 export function SettingsModal({ app, onApp, onClose }: { app: AppState; onApp: (s: AppState) => void; onClose: () => void }) {
   const toast = useToast()
+  const { setTheme, setPalette } = useShell()
   const [settings, setSettings] = useState<Settings | null>(null)
 
   useEffect(() => {
     if (app.libraryPath) api.getSettings().then(setSettings)
   }, [app.libraryPath])
-
-  async function setTheme(theme: Theme) {
-    applyTheme(theme)
-    onApp({ ...app, theme })
-    await api.setTheme(theme)
-  }
 
   async function saveReview(patch: Partial<Settings['review']>) {
     setSettings(await api.saveSettings({ review: patch }))
@@ -52,12 +48,25 @@ export function SettingsModal({ app, onApp, onClose }: { app: AppState; onApp: (
       </section>
       <section className="settings-section preference-group">
         <h3>外观</h3>
-        <div className="preference-line">
-          <span>主题</span>
-          <div className="segmented">
-            {(Object.keys(THEME_LABELS) as Theme[]).map(th => (
-              <button key={th} className={app.theme === th ? 'active' : ''} aria-pressed={app.theme === th} onClick={() => setTheme(th)}>{THEME_LABELS[th]}</button>
-            ))}
+        <div className="appearance">
+          <div className="preference-line">
+            <span>主题</span>
+            <div className="segmented">
+              {(Object.keys(THEME_LABELS) as Theme[]).map(th => (
+                <button key={th} className={app.theme === th ? 'active' : ''} aria-pressed={app.theme === th} onClick={() => setTheme(th)}>{THEME_LABELS[th]}</button>
+              ))}
+            </div>
+          </div>
+          <div className="preference-line">
+            <span>主题色</span>
+            <div className="swatches">
+              {(Object.keys(PALETTE_LABELS) as Palette[]).map((p) => (
+                <button key={p} className={`swatch swatch-${p}${app.palette === p ? ' active' : ''}`} aria-pressed={app.palette === p} title={PALETTE_LABELS[p]} onClick={() => setPalette(p)}>
+                  <i />
+                  {PALETTE_LABELS[p]}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </section>

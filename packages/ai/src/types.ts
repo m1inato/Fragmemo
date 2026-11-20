@@ -40,6 +40,8 @@ export interface ApiProvider extends ProviderBase {
  */
 export interface CliProvider extends ProviderBase {
   kind: 'cli'
+  /** False when the CLI cannot resume a session: earlier turns are then folded into the prompt. */
+  resumable?: boolean
   run(req: {
     system: string
     prompt: string

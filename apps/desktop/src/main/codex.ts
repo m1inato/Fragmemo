@@ -29,7 +29,7 @@ export async function codexModels(): Promise<LocalModel[]> {
 
 export function codexProvider(workDir: string, model: string, effort?: string): CliProvider {
   return {
-    kind: 'cli', id: 'codex-cli',
+    kind: 'cli', id: 'codex-cli', resumable: false,
     available: () => locate().then(() => true, () => false),
     async run(request) {
       const bin = await locate()

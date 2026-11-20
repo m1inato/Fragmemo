@@ -33,10 +33,11 @@ function FillIn({ note }: { note: GrammarNote }) {
   )
 }
 
-export function AnswerView({ note }: { note: Standard }) {
+/** `showTerm` is false when the prompt already shows the headword in full. */
+export function AnswerView({ note, showTerm = true }: { note: Standard; face?: number; showTerm?: boolean }) {
   switch (note.type) {
     case 'word':
-      return <WordAnswer note={note} />
+      return <WordAnswer note={note} showTerm={showTerm} />
     case 'sentence':
       return <SentenceAnswer note={note} />
     case 'grammar':
@@ -44,19 +45,29 @@ export function AnswerView({ note }: { note: Standard }) {
   }
 }
 
-function WordAnswer({ note }: { note: WordNote }) {
+function WordAnswer({ note, showTerm }: { note: WordNote; showTerm: boolean }) {
   const f = note.fields
+  const reading = f.reading && f.reading !== f.term ? f.reading : ''
   return (
     <div className="answer">
       <div className="answer-head">
-        <span className="answer-term">{f.term}</span>
-        {f.reading && f.reading !== f.term && <span className="answer-reading">{f.reading}</span>}
+        {showTerm && <span className="answer-term">{f.term}</span>}
+        {reading && <span className={showTerm ? 'answer-reading' : 'answer-reading answer-reading-lead'}>{reading}</span>}
         {f.pos && <span className="chip">{f.pos}</span>}
       </div>
       <p className="answer-meaning">{f.meaning}</p>
-      <Examples items={f.examples} />
-      {f.notes && <p className="answer-notes">{f.notes}</p>}
-      {!!f.confusables?.length && <p className="answer-confusables">易混：{f.confusables.join('、')}</p>}
+      <Examples items={f.examples} term={f.term} />
+      {(f.notes || !!f.confusables?.length) && (
+        <div className="answer-extra">
+          {f.notes && <p className="answer-notes">{f.notes}</p>}
+          {!!f.confusables?.length && (
+            <p className="answer-confusables">
+              <span>易混</span>
+              {f.confusables.map((c) => <span key={c} className="chip">{c}</span>)}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -87,21 +98,36 @@ function GrammarAnswer({ note }: { note: GrammarNote }) {
       </div>
       <p className="answer-meaning">{f.meaning}</p>
       {f.nuance && <p className="answer-notes">{f.nuance}</p>}
-      <Examples items={f.examples} />
+      <Examples items={f.examples} term={f.pattern.replace(/[〜~～]/g, '')} />
     </div>
   )
 }
 
-function Examples({ items }: { items?: Example[] }) {
+function Examples({ items, term }: { items?: Example[]; term?: string }) {
   if (!items?.length) return null
   return (
     <ul className="examples">
       {items.map((e, i) => (
         <li key={i}>
-          <span className="example-text">{e.text}</span>
+          <span className="example-text"><Marked text={e.text} term={term} /></span>
           <span className="example-translation">{e.translation}</span>
         </li>
       ))}
     </ul>
   )
+}
+
+/** The headword inside an example, also when inflected: 嬉しい marks 嬉し in 嬉しかった. */
+function Marked({ text, term }: { text: string; term?: string }) {
+  if (!term) return text
+  const stems = [term, term.length > 2 ? term.slice(0, -1) : ''].filter(Boolean)
+  for (const stem of stems) {
+    const at = text.toLowerCase().indexOf(stem.toLowerCase())
+    if (at < 0) continue
+    // English inflections are letters on the end; Japanese ones are too ambiguous, so only the stem is marked.
+    let end = at + stem.length
+    while (end < text.length && end - at < stem.length + 3 && /[a-z]/i.test(text[end])) end++
+    return <>{text.slice(0, at)}<mark>{text.slice(at, end)}</mark>{text.slice(end)}</>
+  }
+  return text
 }

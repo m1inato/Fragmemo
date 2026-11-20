@@ -1,17 +1,17 @@
 import type { Lang } from '@fragmemo/core'
 import { useEffect, useState } from 'react'
-import type { AppState, TaskRecord, Theme } from './api'
+import type { AppState, Palette, TaskRecord, Theme } from './api'
+import { Sidebar } from './components/Sidebar'
 import { ToastProvider } from './components/Toast'
-import { MainTopbar } from './components/Topbar'
 import { api } from './lib/api'
-import { ShellContext, type GeneratePreset, type Shell, type View } from './lib/shell'
-import { applyTheme } from './lib/theme'
+import { ACTIVITY_DAYS, ShellContext, type GeneratePreset, type Shell, type View } from './lib/shell'
+import { applyPalette, applyTheme } from './lib/theme'
 import { useAsync } from './lib/useAsync'
-import { Activity } from './pages/Activity'
 import { DeckView } from './pages/DeckView'
 import { Generate } from './pages/Generate'
-import { Home, Library } from './pages/Home'
+import { Home } from './pages/Home'
 import { ImportPage } from './pages/ImportPage'
+import { Library } from './pages/Library'
 import { CreateDeckDialog } from './pages/LibraryDialogs'
 import { RightPanel } from './pages/RightPanel'
 import { Review } from './pages/Review'
@@ -22,17 +22,20 @@ type Dialog = { name: 'generate'; preset: GeneratePreset } | { name: 'create'; l
 
 export function App() {
   const [app, setApp] = useState<AppState | null>(null)
-  const [view, setView] = useState<View>({ name: 'activity' })
+  const [view, setView] = useState<View>({ name: 'home' })
   const [dialog, setDialog] = useState<Dialog | null>(null)
   const [tasks, setTasks] = useState<TaskRecord[]>([])
   const [panel, setPanel] = useState<Shell['panel']>(null)
   // Bumped on library:changed so pages refetch.
   const [version, setVersion] = useState(0)
-  const { data: langs } = useAsync(() => (app?.libraryPath ? api.overview() : Promise.resolve(undefined)), [version, app?.libraryPath])
+  const open = !!app?.libraryPath
+  const { data: langs } = useAsync(() => (open ? api.overview() : Promise.resolve(undefined)), [version, open])
+  const { data: activity } = useAsync(() => (open ? api.studyActivity(ACTIVITY_DAYS) : Promise.resolve(undefined)), [version, open])
 
   useEffect(() => {
     api.getApp().then((s) => {
       applyTheme(s.theme)
+      applyPalette(s.palette)
       setApp(s)
     })
     return api.onLibraryChanged(() => {
@@ -42,10 +45,10 @@ export function App() {
   }, [])
 
   useEffect(() => {
-    if (!app?.libraryPath) return
+    if (!open) return
     api.listTasks().then(setTasks)
     return api.onTasksChanged((list) => setTasks([...list]))
-  }, [app?.libraryPath])
+  }, [open])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -60,25 +63,32 @@ export function App() {
 
   if (!app) return <div className="app-loading" />
 
-  const setTheme = (theme: Theme) => {
-    applyTheme(theme)
-    setApp({ ...app, theme })
-    api.setTheme(theme)
-  }
-
   const shell: Shell = {
     view,
     go: setView,
     langs,
+    activity,
     version,
+    refresh: () => setVersion((v) => v + 1),
     tasks,
     panel,
     setPanel,
     openGenerate: (preset = {}) => setDialog({ name: 'generate', preset }),
     openCreateDeck: (lang) => setDialog({ name: 'create', lang }),
     openSettings: () => setDialog({ name: 'settings' }),
+    mac: app.platform === 'darwin',
     theme: app.theme,
-    setTheme
+    setTheme: (theme: Theme) => {
+      applyTheme(theme)
+      setApp({ ...app, theme })
+      api.setTheme(theme)
+    },
+    palette: app.palette,
+    setPalette: (palette: Palette) => {
+      applyPalette(palette)
+      setApp({ ...app, palette })
+      api.setPalette(palette)
+    }
   }
   const close = () => setDialog(null)
   const reviewing = view.name === 'review'
@@ -86,28 +96,33 @@ export function App() {
   return (
     <ToastProvider>
       <ShellContext.Provider value={shell}>
-        {!app.libraryPath ? (
+        {!open ? (
           <Welcome onReady={setApp} />
+        ) : reviewing ? (
+          <Review
+            scope={view.scope}
+            title={view.title}
+            onExit={() => {
+              setVersion((v) => v + 1)
+              setView(view.scope.deckIds?.length === 1 ? { name: 'deck', deckId: view.scope.deckIds[0] } : { name: 'home' })
+            }}
+          />
         ) : (
-          <div className="app">
-            {!reviewing && <MainTopbar mac={app.platform === 'darwin'} />}
-            <div className="app-content">
-              <div className="main">
-                {view.name === 'review' && <Review scope={view.scope} title={view.title} onExit={() => setView({ name: 'home' })} />}
-                {view.name === 'activity' && <Activity />}
-                {view.name === 'home' && <Home />}
-                {view.name === 'library' && <Library />}
-                {view.name === 'deck' && <DeckView key={view.deckId} deckId={view.deckId} />}
-                {view.name === 'import' && (
-                  <ImportPage
-                    key={`${view.preset?.lang ?? ''}:${view.preset?.text ?? ''}`}
-                    preset={view.preset}
-                    onImported={(deckId) => setView((current) => current === view ? { name: 'deck', deckId } : current)}
-                  />
-                )}
-              </div>
-              {panel && !reviewing && <RightPanel key={app.libraryPath} root={app.libraryPath} />}
+          <div className={`app${app.platform === 'darwin' ? ' is-mac' : ''}`}>
+            <Sidebar />
+            <div className="main">
+              {view.name === 'home' && <Home />}
+              {view.name === 'library' && <Library />}
+              {view.name === 'deck' && <DeckView key={view.deckId} deckId={view.deckId} />}
+              {view.name === 'import' && (
+                <ImportPage
+                  key={`${view.source ?? ''}:${view.text ?? ''}`}
+                  view={view}
+                  onImported={(deckId) => setView((current) => (current === view ? { name: 'deck', deckId } : current))}
+                />
+              )}
             </div>
+            {panel && <RightPanel key={app.libraryPath} root={app.libraryPath!} />}
           </div>
         )}
         {dialog?.name === 'generate' && <Generate preset={dialog.preset} onClose={close} onCreated={() => setPanel('tasks')} />}

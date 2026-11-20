@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { Theme } from '../api'
 import { useShell } from '../lib/shell'
 import { THEME_LABELS } from '../lib/theme'
-import { Icon, Mark, type IconName } from './Icon'
+import { Icon, type IconName } from './Icon'
 
 const THEMES: { id: Theme; icon: IconName }[] = [
   { id: 'system', icon: 'monitor' },
@@ -11,66 +11,36 @@ const THEMES: { id: Theme; icon: IconName }[] = [
   { id: 'sepia', icon: 'leaf' }
 ]
 
-const PAGES = [
-  { name: 'home', label: '今天' },
-  { name: 'library', label: '卡组' },
-  { name: 'import', label: '导入词组' }
-] as const
-
-export function MainTopbar({ mac }: { mac: boolean }) {
-  const { view, go } = useShell()
-  const active = view.name === 'deck' ? 'library' : view.name
-
-  return (
-    <header className={`topbar main-topbar${mac ? ' main-topbar-mac' : ''}`}>
-      <button className="brand" aria-label="Fragmemo 主页" aria-current={view.name === 'activity' ? 'page' : undefined} onClick={() => go({ name: 'activity' })}>
-        <Mark size={24} />
-        Fragmemo
-      </button>
-      <nav className="main-nav" aria-label="页面导航">
-        {PAGES.map(({ name, label }) => (
-          <button
-            key={name}
-            aria-current={active === name ? 'page' : undefined}
-            onClick={() => view.name !== name && go({ name })}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
-      <div className="topbar-side topbar-actions"><TopActions /></div>
-    </header>
-  )
-}
-
-/** Draggable bar over the page. `inset` leaves room for the traffic lights when there is no sidebar. */
-export function Topbar({ left, center, right, inset }: { left?: ReactNode; center?: ReactNode; right?: ReactNode; inset?: boolean }) {
+/** Draggable bar over a page: optional back button and title, page-independent actions on the right. */
+export function Topbar({ left, title, right, inset }: { left?: ReactNode; title?: ReactNode; right?: ReactNode; inset?: boolean }) {
   return (
     <header className={`topbar${inset ? ' topbar-inset' : ''}`}>
       <div className="topbar-side">{left}</div>
-      <div className="topbar-center">{center}</div>
+      <div className="topbar-center">{title && <span className="topbar-title">{title}</span>}</div>
       <div className="topbar-side topbar-actions">{right ?? <TopActions />}</div>
     </header>
   )
 }
 
-/** The page-independent actions: Q&A, tasks, theme, settings. */
+/** Notes, Q&A, tasks, theme, settings. */
 export function TopActions() {
   const { tasks, panel, setPanel, openSettings } = useShell()
   const busy = tasks.some((t) => t.status === 'running' || t.status === 'queued')
   const waiting = tasks.some((t) => (t.result?.pending.length ?? 0) > 0 && !t.result?.undone)
+  const toggle = (p: NonNullable<typeof panel>) => setPanel(panel === p ? null : p)
   return (
     <>
-      <button className={`icon-button bordered${panel === 'notes' ? ' active' : ''}`} title="笔记" aria-pressed={panel === 'notes'} onClick={() => setPanel(panel === 'notes' ? null : 'notes')}>
+      <button className={`icon-button bordered${panel === 'notes' ? ' active' : ''}`} title="笔记" aria-pressed={panel === 'notes'} onClick={() => toggle('notes')}>
         <Icon name="edit" />
       </button>
-      <button className={`icon-button bordered${panel === 'qa' ? ' active' : ''}`} title="问答" onClick={() => setPanel(panel === 'qa' ? null : 'qa')}>
+      <button className={`icon-button bordered${panel === 'qa' ? ' active' : ''}`} title="问答" aria-pressed={panel === 'qa'} onClick={() => toggle('qa')}>
         <Icon name="chat" />
       </button>
-      <button className={`icon-button bordered${panel === 'tasks' ? ' active' : ''}`} title="AI 任务" onClick={() => setPanel(panel === 'tasks' ? null : 'tasks')}>
-        <Icon name="list" />
+      <button className={`icon-button bordered${panel === 'tasks' ? ' active' : ''}`} title="AI 任务" aria-pressed={panel === 'tasks'} onClick={() => toggle('tasks')}>
+        <Icon name="sparkles" />
         {(busy || waiting) && <span className={`dot${busy ? ' dot-busy' : ''}`} />}
       </button>
+      <span className="topbar-divider" />
       <ThemeButton />
       <button className="icon-button bordered" title="设置 (⌘,)" onClick={openSettings}>
         <Icon name="settings" />

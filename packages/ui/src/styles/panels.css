@@ -7,8 +7,12 @@
   width: 380px;
   height: 100%;
   border-left: 1px solid hsl(var(--border));
-  background: hsl(var(--background));
+  background: hsl(var(--muted) / 0.45);
   animation: slide 0.16s ease-out;
+}
+.panel-loading {
+  padding: 20px;
+  font-size: 13px;
 }
 .panel-header {
   flex: none;

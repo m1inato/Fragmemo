@@ -84,7 +84,7 @@ export function QaPanel() {
           <div key={i} className={`qa-turn qa-${t.role}${t.error ? ' qa-error' : ''}`}>
             <div className="qa-text">{t.text ? <Inline text={t.text} /> : busy && i === turns.length - 1 ? '…' : ''}</div>
             {t.role === 'assistant' && t.text && !t.error && !(busy && i === turns.length - 1) && (
-              <button className="link qa-add" onClick={() => go({ name: 'import', preset: { lang, text: t.text } })}>加入卡组</button>
+              <button className="link qa-add" onClick={() => go({ name: 'import', source: 'text', lang, text: t.text })}>加入卡组</button>
             )}
           </div>
         ))}

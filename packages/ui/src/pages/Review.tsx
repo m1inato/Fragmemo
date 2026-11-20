@@ -7,6 +7,7 @@ import { ThemeButton, Topbar } from '../components/Topbar'
 import { errorText, useToast } from '../components/Toast'
 import { api } from '../lib/api'
 import { formatInterval, langHue, MODE_LABELS, RATING_LABELS } from '../lib/format'
+import { useShell } from '../lib/shell'
 import { speak, stop } from '../lib/speech'
 
 /**
@@ -16,14 +17,19 @@ import { speak, stop } from '../lib/speech'
  */
 type Phase = { name: 'ask' } | { name: 'revealed'; correct?: boolean } | { name: 'close'; input: string }
 
+/** One answered card in this round, for the progress line and the summary. */
+interface Answered { rating: Rating; ms: number }
+
 export function Review({ scope, title, onExit }: { scope: ReviewScope; title: string; onExit: () => void }) {
+  const { mac } = useShell()
   const toast = useToast()
   const [item, setItem] = useState<ReviewItem | null | undefined>(undefined)
   const [left, setLeft] = useState({ due: 0, fresh: 0 })
   const [phase, setPhase] = useState<Phase>({ name: 'ask' })
   const [picked, setPicked] = useState<string | null>(null)
-  const [done, setDone] = useState(0)
+  const [answered, setAnswered] = useState<Answered[]>([])
   const shownAt = useRef(Date.now())
+  const startedAt = useRef(Date.now())
   const busy = useRef(false)
 
   const show = useCallback((next: ReviewItem | null) => {
@@ -57,8 +63,9 @@ export function Review({ scope, title, onExit }: { scope: ReviewScope; title: st
     busy.current = true
     try {
       const correct = phase.name === 'revealed' ? phase.correct : undefined
-      await api.answer(item.cardId, { rating, mode: item.mode, correct, durationMs: Date.now() - shownAt.current })
-      setDone((n) => n + 1)
+      const ms = Date.now() - shownAt.current
+      await api.answer(item.cardId, { rating, mode: item.mode, correct, durationMs: ms })
+      setAnswered((xs) => [...xs, { rating, ms }])
       await loadNext()
     } catch (err) {
       toast.show(errorText(err), 'error')
@@ -70,7 +77,7 @@ export function Review({ scope, title, onExit }: { scope: ReviewScope; title: st
   async function undo() {
     const back = await api.undoReview().catch(() => null)
     if (!back) return toast.show('没有可以撤销的了')
-    setDone((n) => Math.max(0, n - 1))
+    setAnswered((xs) => xs.slice(0, -1))
     const q = await api.nextReview(scope)
     setLeft({ due: q.due, fresh: q.fresh })
     show(back)
@@ -114,8 +121,8 @@ export function Review({ scope, title, onExit }: { scope: ReviewScope; title: st
         undo()
         return
       }
+      if (e.key === 'Escape' || (item === null && e.key === 'Enter')) return void exit()
       if (!item || e.target instanceof HTMLInputElement) return
-      if (e.key === 'Escape') return void exit()
       if (e.key === 'r') return void play(item)
       const n = Number(e.key)
       if (phase.name === 'ask') {
@@ -138,86 +145,91 @@ export function Review({ scope, title, onExit }: { scope: ReviewScope; title: st
     return () => window.removeEventListener('keydown', onKey)
   })
 
+  const done = answered.length
+  const total = done + left.due + left.fresh
   const header = (
-    <Topbar
-      inset
-      left={
-        <button className="button button-ghost" onClick={exit} title="结束 (Esc)">
-          <Icon name="back" />
-          结束
-        </button>
-      }
-      center={<span className="topbar-title">{title}</span>}
-      right={
-        <>
-          <span className="chip review-left" title="待复习 · 新卡">待复习 {left.due} · 新 {left.fresh}</span>
-          <button className="icon-button bordered" onClick={undo} title="撤销 (⌘Z)">
-            <Icon name="undo" />
+    <>
+      <Topbar
+        inset
+        left={
+          <button className="button button-ghost" onClick={exit} title="结束 (Esc)">
+            <Icon name="back" />
+            结束
           </button>
-          <ThemeButton />
-        </>
-      }
-    />
-  )
-
-  if (item === undefined) return <div className="page review">{header}</div>
-  if (item === null) {
-    return (
-      <div className="page review">
-        {header}
-        <main className="review-done">
-          <p className="eyebrow">{title}</p>
-          <h1>这一轮完成了</h1>
-          <p>{done ? `复习了 ${done} 张卡，明天见。` : '现在没有要复习的卡片。'}</p>
-          <button className="button button-primary" onClick={exit}>返回</button>
-        </main>
+        }
+        title={
+          <>
+            {title}
+            {item && <span className="review-count num"> · {done} / {total}</span>}
+          </>
+        }
+        right={
+          <>
+            <span className="review-left num" title="待复习 · 新卡">
+              <i className="due" />{left.due}
+              <i className="fresh" />{left.fresh}
+            </span>
+            <button className="icon-button bordered" onClick={undo} title="撤销 (⌘Z)">
+              <Icon name="undo" />
+            </button>
+            <ThemeButton />
+          </>
+        }
+      />
+      <div className="review-progress" aria-hidden>
+        <span style={{ width: `${total ? (done / total) * 100 : item === null ? 100 : 0}%` }} />
       </div>
-    )
-  }
+    </>
+  )
+  const frame = (body: React.ReactNode) => <div className={`page review${mac ? ' is-mac-window' : ''}`}>{header}{body}</div>
+
+  if (item === undefined) return frame(null)
+  if (item === null) return frame(<Summary title={title} answered={answered} startedAt={startedAt.current} onExit={exit} />)
 
   const revealed = phase.name === 'revealed'
   const note = item.note
 
-  return (
-    <div className="page review">
-      {header}
-      <main className="review-main" lang={item.lang}>
-        <div className="review-meta">
-          <span className="chip tint" style={{ '--h': langHue(item.lang) } as React.CSSProperties}>{item.deckName}</span>
-          {item.faceLabel && <span className="chip">{item.faceLabel}</span>}
-          {item.isNew && <span className="chip new">新卡</span>}
-          <div className="review-modes">
+  return frame(
+    <main className="review-main" lang={item.lang}>
+      <div className="review-stage">
+        <div className="review-paper p2" />
+        <div className="review-paper p1" />
+        <section key={`${item.cardId}:${item.mode}`} className={`review-card${revealed ? ' is-revealed' : ''}${note.type === 'raw' ? ' is-raw' : ''}`}>
+          <header className="review-card-head">
+            <span className="chip tint" style={{ '--h': langHue(item.lang) } as React.CSSProperties}>{item.deckName}</span>
+            {item.faceLabel && <span className="chip">{item.faceLabel}</span>}
+            {item.isNew && <span className="chip new">新卡</span>}
+            <span className="spacer" />
             {item.modes.length > 1 && (
-              <div className="segmented segmented-small">
-                {item.modes.map((m) => (
-                  <button key={m} className={m === item.mode ? 'active' : ''} onClick={() => switchMode(m)}>{MODE_LABELS[m]}</button>
-                ))}
-              </div>
+              <>
+                <div className="segmented segmented-small" role="group" aria-label="作答方式">
+                  {item.modes.map((m) => (
+                    <button key={m} className={m === item.mode ? 'active' : ''} onClick={() => switchMode(m)}>{MODE_LABELS[m]}</button>
+                  ))}
+                </div>
+                <button className={`icon-button review-pin${note.mode === item.mode ? ' active' : ''}`} onClick={togglePin} title={note.mode === item.mode ? '已固定作答方式，点击取消' : '固定这张卡的作答方式'}>
+                  <Icon name="pin" size={15} />
+                </button>
+              </>
             )}
-            {item.modes.length > 1 && (
-              <button className={`icon-button bordered${note.mode === item.mode ? ' active' : ''}`} onClick={togglePin} title={note.mode === item.mode ? '已固定作答模式，点击取消' : '固定这张卡的作答模式'}>
-                <Icon name="pin" />
-              </button>
-            )}
-          </div>
-        </div>
+          </header>
 
-        <section className={`review-card${revealed ? ' is-revealed' : ''}`}>
           {note.type === 'raw' ? (
             item.raw ? <CardFrame key={`${item.cardId}-${revealed}`} html={revealed ? item.raw.back : item.raw.front} css={item.raw.css} autoplay /> : <p className="muted">找不到这张卡的模板</p>
           ) : (
-            <>
+            <div className="review-card-body">
               <div className="prompt">
                 {item.mode === 'spell' && note.type === 'word' ? (
                   <p className="prompt-meaning">{note.fields.meaning}</p>
                 ) : (
                   <Prompt note={note} face={item.face} hideText={item.mode === 'listen' && !revealed} />
                 )}
-                {(item.mode === 'listen' || item.speech) && (
-                  <button className={`speaker${item.mode === 'listen' && !revealed ? ' speaker-large' : ''}`} onClick={() => play(item)} title="播放 (R)" aria-label="播放">
+                {(item.mode === 'listen' || item.speech || item.audioUrl) && (
+                  <button className={`speaker${item.mode === 'listen' && !revealed ? ' speaker-large' : ''}`} onClick={() => play(item)} title="朗读 (R)" aria-label="朗读">
                     <Icon name="volume" size={item.mode === 'listen' && !revealed ? 30 : 16} />
                   </button>
                 )}
+                {item.mode === 'listen' && !revealed && <p className="prompt-hint">听一听，想想是什么意思</p>}
               </div>
 
               {item.mode === 'choice' && item.choices && (
@@ -229,6 +241,8 @@ export function Review({ scope, title, onExit }: { scope: ReviewScope; title: st
                         <button className={`choice${state}`} onClick={() => choose(c)} disabled={revealed}>
                           <kbd>{i + 1}</kbd>
                           <span>{c}</span>
+                          {revealed && c === item.answer && <Icon name="check" size={16} />}
+                          {revealed && c === picked && c !== item.answer && <Icon name="x" size={16} />}
                         </button>
                       </li>
                     )
@@ -244,27 +258,32 @@ export function Review({ scope, title, onExit }: { scope: ReviewScope; title: st
 
               {revealed && (
                 <div className="answer-wrap">
-                  <AnswerView note={note} />
+                  <AnswerView note={note} face={item.face} showTerm={item.mode !== 'flip' || item.face !== 0} />
                 </div>
               )}
-            </>
-          )}
-        </section>
-
-        <footer className="review-actions">
-          {phase.name === 'ask' && (item.mode === 'flip' || item.mode === 'listen') && (
-            <button className="button button-primary button-large" onClick={reveal}>
-              显示答案 <kbd>Space</kbd>
-            </button>
-          )}
-          {revealed && phase.correct === false && (
-            <div className="verdict verdict-wrong">
-              <span>答错了，记为「忘记」</span>
-              <button className="button button-primary" onClick={() => submit(1)}>继续 <kbd>Space</kbd></button>
             </div>
           )}
-          {revealed && phase.correct !== false && (
-            <div className="ratings">
+        </section>
+      </div>
+
+      <footer className="review-actions">
+        {phase.name === 'ask' && (item.mode === 'flip' || item.mode === 'listen') && (
+          <button className="button button-primary button-large reveal" onClick={reveal}>
+            显示答案 <kbd>Space</kbd>
+          </button>
+        )}
+        {phase.name === 'ask' && item.mode === 'choice' && <p className="review-hint">选出正确的释义 · 按 1–{item.choices?.length ?? 4}</p>}
+        {revealed && phase.correct === false && (
+          <div className="verdict verdict-wrong">
+            <Icon name="x" />
+            <span>答错了，记为「忘记」</span>
+            <button className="button button-primary" onClick={() => submit(1)}>继续 <kbd>Space</kbd></button>
+          </div>
+        )}
+        {revealed && phase.correct !== false && (
+          <div className="ratings">
+            {phase.correct && <span className="verdict verdict-right"><Icon name="check" />答对了，有多轻松？</span>}
+            <div className="rating-row">
               {([1, 2, 3, 4] as Rating[])
                 .filter((r) => !(phase.correct && r === 1))
                 .map((r) => (
@@ -275,15 +294,58 @@ export function Review({ scope, title, onExit }: { scope: ReviewScope; title: st
                   </button>
                 ))}
             </div>
-          )}
-        </footer>
-      </main>
-    </div>
+          </div>
+        )}
+      </footer>
+      <p className="review-keys">
+        <span><kbd>Space</kbd> 显示 / 良好</span>
+        <span><kbd>1</kbd>–<kbd>4</kbd> 评分</span>
+        <span><kbd>R</kbd> 朗读</span>
+        <span><kbd>⌘Z</kbd> 撤销</span>
+        <span><kbd>Esc</kbd> 结束</span>
+      </p>
+    </main>
   )
 }
 
 function play(item: ReviewItem) {
   speak({ lang: item.lang, text: item.speech, url: item.audioUrl })
+}
+
+function Summary({ title, answered, startedAt, onExit }: { title: string; answered: Answered[]; startedAt: number; onExit: () => void }) {
+  const n = answered.length
+  const counts = ([1, 2, 3, 4] as Rating[]).map((r) => answered.filter((a) => a.rating === r).length)
+  const recalled = n ? Math.round(((n - counts[0]) / n) * 100) : 0
+  const minutes = Math.max(1, Math.round((Date.now() - startedAt) / 60000))
+  const avg = n ? Math.round(answered.reduce((s, a) => s + a.ms, 0) / n / 1000) : 0
+
+  return (
+    <main className="review-done">
+      <div className="done-mark"><Icon name="check" size={30} /></div>
+      <p className="eyebrow">{title}</p>
+      <h1>{n ? '这一轮完成了' : '现在没有要复习的卡片'}</h1>
+      <p className="muted">{n ? '记忆会在合适的时候提醒你回来。' : '新的卡片会在到期时出现，明天见。'}</p>
+      {n > 0 && (
+        <div className="card done-card">
+          <div className="done-numbers">
+            <div><b className="num">{n}</b><span>张卡</span></div>
+            <div><b className="num">{recalled}%</b><span>记得</span></div>
+            <div><b className="num">{minutes}</b><span>分钟</span></div>
+            <div><b className="num">{avg}s</b><span>平均每张</span></div>
+          </div>
+          <div className="done-bar" aria-label="评分分布">
+            {counts.map((c, i) => c > 0 && <span key={i} className={`rating-${i + 1}`} style={{ flex: c }} />)}
+          </div>
+          <div className="done-legend">
+            {counts.map((c, i) => (
+              <span key={i} className={`rating-${i + 1}`}><i />{RATING_LABELS[(i + 1) as Rating]} {c}</span>
+            ))}
+          </div>
+        </div>
+      )}
+      <button className="button button-primary button-large" onClick={onExit}>返回 <kbd>Enter</kbd></button>
+    </main>
+  )
 }
 
 function SpellInput({ onSubmit, close, onAccept, onReject }: {

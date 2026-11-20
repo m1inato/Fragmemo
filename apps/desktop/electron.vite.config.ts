@@ -18,11 +18,6 @@ function runtimeAssets(): Plugin {
     name: 'fragmemo-runtime-assets',
     generateBundle() {
       this.emitFile({ type: 'asset', fileName: 'sql-wasm.wasm', source: readFileSync(sqlWasm) })
-      const presets = join(__dirname, 'presets')
-      // Reassemble the JLPT deck, which exceeds GitHub's single-file limit.
-      const jlpt = Buffer.concat(['part1', 'part2'].map(part => readFileSync(join(presets, '832276382.apkg.' + part))))
-      this.emitFile({ type: 'asset', fileName: 'presets/832276382.apkg', source: jlpt })
-      this.emitFile({ type: 'asset', fileName: 'presets/657511105.apkg', source: readFileSync(join(presets, '657511105.apkg')) })
       for (const f of readdirSync(dictDir)) {
         this.emitFile({ type: 'asset', fileName: `dict/${f}`, source: readFileSync(join(dictDir, f)) })
       }
